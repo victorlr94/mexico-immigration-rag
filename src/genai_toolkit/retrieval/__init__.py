@@ -1,6 +1,7 @@
-"""Capa de recuperación: tipos compartidos y contrato del Retriever."""
+"""Capa de recuperación: tipos compartidos, contrato e implementación."""
 
 from genai_toolkit.retrieval.base import RetrievalError, Retriever
+from genai_toolkit.retrieval.simple_retriever import SimpleRetriever
 from genai_toolkit.retrieval.types import (
     Chunk,
     ChunkMetadata,
@@ -15,4 +16,5 @@ __all__ = [
     "RetrievalResult",
     "Retriever",
     "ScoredChunk",
+    "SimpleRetriever",
 ]
