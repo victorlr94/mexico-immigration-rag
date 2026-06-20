@@ -1,0 +1,54 @@
+# Secretos y entorno
+.env
+.env.*
+!.env.example
+
+# Datos (referenciar con script de descarga, no commitear binarios pesados)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Índices y artefactos del vector store
+*.chroma/
+chroma_db/
+
+# Modelos descargados
+*.gguf
+models/
+
+# Resultados voluminosos de evaluación (conservar solo baseline)
+evaluations/results/*
+!evaluations/results/.gitkeep
+!evaluations/results/baseline.json
+
+# Logs
+logs/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.env/
+
+# Caches de herramientas
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# IDE / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

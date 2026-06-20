@@ -1,0 +1,35 @@
+# ----------------------------------------------------------------------
+# Dependencias de runtime. Versiones pineadas por rango menor para
+# reproducibilidad sin congelar parches de seguridad.
+# Todas open source / gratuitas (ver requerimientos del proyecto).
+# ----------------------------------------------------------------------
+
+# --- Núcleo RAG ---
+langchain~=0.3
+langchain-community~=0.3
+chromadb~=0.5
+sentence-transformers~=3.0
+
+# --- LLM local ---
+ollama~=0.3
+
+# --- Lectura de documentos ---
+pypdf~=5.0
+
+# --- Configuración ---
+pydantic~=2.8
+pydantic-settings~=2.4
+pyyaml~=6.0
+python-dotenv~=1.0
+
+# --- Interfaz ---
+streamlit~=1.38
+
+# --- Evaluación RAG ---
+ragas~=0.2
+
+# ----------------------------------------------------------------------
+# Herramientas de desarrollo (lint, type, test) viven en
+# pyproject.toml [project.optional-dependencies].dev
+# Instalar con: pip install -e ".[dev]"
+# ----------------------------------------------------------------------
