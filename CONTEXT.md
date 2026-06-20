@@ -1,8 +1,8 @@
 # Contexto del proyecto — Mexico Immigration RAG Assistant (Asesor Migratorio RAG)
 
 > Este documento sintetiza todo lo decidido y construido hasta el cierre de la
-> Fase 0 y el avance de Fase 1, para que cualquier sesión nueva de Claude
-> (Code o chat) recupere el contexto completo sin tener que re-derivarlo.
+> **Fase 1 (v0.1.0)**, para que cualquier sesión nueva de Claude (Code o chat)
+> recupere el contexto completo sin tener que re-derivarlo.
 > Está pensado para pegarse como mensaje inicial o guardarse como `CONTEXT.md`
 > en la raíz del repo y referenciarse al abrir una sesión nueva.
 >
@@ -49,8 +49,7 @@ y se espera que continúe:
   (sintaxis, YAML, TOML, lógica aislada), se hizo antes de entregar código.
   Cuando no fue posible (sin pydantic/red en el entorno de construcción), se
   fue explícito sobre esa limitación y se dejaron tests reales para que el
-  usuario verificara en su máquina — varias veces esto sí atrapó bugs reales
-  (ver sección 5).
+  usuario verificara en su máquina — varias veces esto sí atrapó bugs reales.
 - **Documentar decisiones no obvias como ADR**, con alternativas consideradas
   y por qué se descartaron — no solo "qué se hizo" sino "qué no se hizo y
   por qué". Cinco ADRs ya existen (ver sección 4).
@@ -58,9 +57,7 @@ y se espera que continúe:
   solo**, con auto-revisión del diff antes de mergear. Ver
   **`docs/engineering_skills/01_version_control.md`**.
 - **El roadmap por fases es la estructura de avance** — no se salta de fase
-  ni se sobrearquitectura adelantándose a necesidades que no existen todavía
-  (ej.: no se separó `genai_toolkit/` en librería instalable aparte; vive
-  dentro del repo hasta que exista un segundo consumidor real).
+  ni se sobrearquitectura adelantándose a necesidades que no existen todavía.
 
 ## 3. Las 7 skills de ingeniería (ya escritas, en `docs/engineering_skills/`)
 
@@ -88,92 +85,65 @@ Todos en `docs/architecture/adr/`. **Leer antes de tocar código relacionado:**
 - **ADR-002** — `pypdf` (no PyMuPDF) para extracción de PDF. PyMuPDF
   descartado por: (a) vulnerabilidad de path traversal/escritura arbitraria
   más severa que los DoS de pypdf, (b) licencia AGPL incompatible con MIT del
-  proyecto. Pin actualizado a `~=6.0` (resolvió 28 CVEs de la serie 5.x,
-  mayoría DoS por PDFs malformados — razón directa por la que el loader debe
-  implementar límites de tamaño/páginas/timeout).
-- **ADR-003** — Estrategia de gate de seguridad: `pip-audit` con lista
-  explícita de excepciones en `security/accepted-vulnerabilities.txt` (cada
-  entrada con justificación y fecha de revisión: **2026-09-01**). Un CVE
-  nuevo no listado ahí debe seguir bloqueando CI. Pendiente en esa lista:
-  upgrade de `langchain` 0.3→1.x (issue de GitHub aún no creado), CVE SSRF
-  sin parche en `ragas` (mitigar con restricción de red en Fase 4).
-- **ADR-004** — Umbral de cobertura progresivo (no fijo en 70% desde el día
-  1): **30% en Fase 0 → 50% en Fase 1 → 70% en Fase 3**. Actualizar
-  `pyproject.toml` (`[tool.coverage.report] fail_under`) y este ADR al
-  cerrar cada fase — está en el checklist de cierre, no es automático.
+  proyecto. Pin actualizado a `~=6.0`.
+- **ADR-003** — Gate de seguridad: `pip-audit` con lista explícita de
+  excepciones en `security/accepted-vulnerabilities.txt` (cada entrada con
+  justificación y fecha de revisión: **2026-09-01**). Un CVE nuevo no listado
+  ahí sigue bloqueando CI.
+- **ADR-004** — Umbral de cobertura progresivo: **30% en Fase 0 → 50% en
+  Fase 1 (actual) → 70% en Fase 3**. Actualizar `pyproject.toml` al cerrar
+  cada fase.
 - **ADR-005** — Tipos intermedios `RawPage`/`LoadedDocument` en la capa de
-  ingesta. El loader produce `LoadedDocument`; el chunker (siguiente pieza)
-  lo convierte en `list[Chunk]`. `Chunk`/`ChunkMetadata` no pueden llenarse
-  directamente desde el loader porque `chunk_index`, `section` e `id` solo
-  existen después del chunking. Ver ADR-005 para alternativa considerada y
-  descartada.
+  ingesta. El loader produce `LoadedDocument`; el chunker lo convierte en
+  `list[Chunk]`. `chunk_index`, `section` e `id` solo existen después del
+  chunking.
 
-## 5. Estado técnico actual (Fase 1 en curso — 3 de 7 componentes MVP listos)
+## 5. Estado técnico al cierre de Fase 1 (v0.1.0 — 2026-06-20)
 
-### Cerrado en Fase 0 — mergeado a `develop` (PR #1)
+### Rama: `main` (tag `v0.1.0`)
 
-- `src/genai_toolkit/retrieval/types.py` — `Chunk`, `ChunkMetadata`, `ScoredChunk`, `RetrievalResult`.
-- `src/genai_toolkit/embeddings/base.py` — `Protocol EmbeddingProvider`.
-- `src/genai_toolkit/vectorstore/base.py` — `Protocol VectorStore`.
-- `src/genai_toolkit/llm/base.py` — `Protocol LLMProvider`.
-- `src/genai_toolkit/retrieval/base.py` — `Protocol Retriever`.
-- `src/genai_toolkit/prompts/base.py` — `Protocol PromptManager` + `PromptInputs`.
-- `src/genai_toolkit/config/settings.py` — `Settings` (Pydantic Settings), precedencia: env > `.env` > kwargs > YAML > defaults.
-- `tests/unit/test_settings.py` — 6 tests; CI/CD en verde.
+El MVP RAG local está 100% implementado y mergeado a `main`.
 
-### Cerrado en Fase 1 — PDF Loader — mergeado a `develop` (PR #2)
+| Componente | Módulo | Tests |
+|---|---|---|
+| Settings (Pydantic) | `src/genai_toolkit/config/settings.py` | 7 tests |
+| Interfaces / Protocols | `src/genai_toolkit/*/base.py` | — |
+| Types compartidos | `src/genai_toolkit/retrieval/types.py` | — |
+| `PdfLoader` | `src/genai_toolkit/ingestion/pdf_loader.py` | 10 tests |
+| `SlidingWindowChunker` | `src/genai_toolkit/processing/sliding_window_chunker.py` | 33 tests |
+| `SentenceTransformerProvider` | `src/genai_toolkit/embeddings/sentence_transformer_provider.py` | 16 tests |
+| `ChromaVectorStore` | `src/genai_toolkit/vectorstore/chroma.py` | ~20 tests |
+| `SimpleRetriever` | `src/genai_toolkit/retrieval/simple_retriever.py` | ~15 tests |
+| `OllamaProvider` | `src/genai_toolkit/llm/ollama.py` | ~12 tests |
+| `RagPromptManager` | `src/genai_toolkit/prompts/rag_prompt_manager.py` | ~15 tests |
+| `IngestionPipeline` | `src/genai_toolkit/pipeline/ingest.py` | ~10 tests |
+| `scripts/ingest.py` | CLI de ingesta end-to-end | tests de integración |
 
-- `src/genai_toolkit/ingestion/types.py`: `RawPage`, `LoadedDocument`, jerarquía de excepciones.
-- `src/genai_toolkit/ingestion/base.py`: `DocumentLoader` Protocol.
-- `src/genai_toolkit/ingestion/pdf_loader.py` — `PdfLoader`:
-  - Validaciones en orden: `path.exists()` → tamaño → magic bytes `%PDF-` → pypdf → conteo de páginas.
-  - Timeout de 60 s via `ThreadPoolExecutor`; fallo por página produce `text=""`.
-- `tests/unit/test_pdf_loader.py` — 10 tests.
-- `docs/architecture/adr/ADR-005-ingestion-intermediate-types.md`.
+**Total**: 163 tests; **97% de cobertura**; `fail_under = 50` (ADR-004).
 
-### Cerrado en Fase 1 — Text Chunker — mergeado a `develop` (PR #4)
+### Detalles de implementación que importan en Fase 2
 
-- `src/genai_toolkit/processing/sliding_window_chunker.py` — `SlidingWindowChunker`:
-  - Sanitiza control chars (`[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]`) antes de indexar (mitigación prompt injection).
-  - Ventana deslizante con `chunk_size=500`, `chunk_overlap=80` (desde `Settings`).
-  - `chunk_index` global secuencial a través de páginas; `id` = SHA-256(`source:index`)[:16].
-  - `section=None` (inferencia de encabezados se añade en Fase posterior).
-- `tests/unit/test_chunker.py` — 33 tests (sanitización, ventanas, metadatos, continuidad multi-página).
+- **PdfLoader**: magic bytes `%PDF-`, límites de `Settings` (`max_file_size_mb`, `max_pages`), timeout 60 s via `ThreadPoolExecutor`.
+- **SlidingWindowChunker**: sanitiza `[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]` (prompt injection desde PDFs); IDs = SHA-256(`source:index`)[:16]; `section=None` (inferencia de encabezados en Fase futura).
+- **SentenceTransformerProvider**: prefijos `"passage: "` / `"query: "` obligatorios; `.tolist() + cast` para evitar `np.float32` en la API pública.
+- **ChromaVectorStore**: espacio coseno, upsert semántico; sentinel `page=None→-1`, `section=None→""` (ChromaDB no admite `None` en metadata); score = `min(1, max(0, 1-distance))`.
+- **SimpleRetriever**: `min_score=0.70`, `top_k=4` (desde Settings); `has_sufficient_context=True` si al menos 1 chunk supera el umbral.
+- **OllamaProvider**: `llama3.1:8b`; timeout 120 s; `temperature=0.1`; guarda explícito contra `response.response is None` (stubs de ollama lo declaran `str | None`).
+- **RagPromptManager**: templates en `src/domain/prompt_templates/`; delimitadores `<context>…</context>` en el template (no en `_build_context_block`) para que el contexto recuperado sea dato, no instrucción.
+- **IngestionPipeline**: si chunker devuelve `[]`, retorna `IngestResult` con `chunks_indexed=0` y NO llama al embedder (evita `ValueError` en `embed_documents([])`).
 
-### En curso en Fase 1 — Embeddings Provider — PR #5 abierto (`feature/embeddings-provider`)
-
-- `src/genai_toolkit/embeddings/sentence_transformer_provider.py` — `SentenceTransformerProvider`:
-  - Modelo: `intfloat/multilingual-e5-small` (~117 MB, CPU, bilingüe ES/EN).
-  - Prefijos de rol: `"passage: "` para documentos, `"query: "` para consultas (requerido por arquitectura e5).
-  - `normalize_embeddings=True` → vectores unitarios; cosine ≡ producto punto (necesario para ChromaDB).
-  - Conversión a `float` nativo via `.tolist()` + `cast` — evita que `np.float32` filtre a la API pública.
-  - Dimension reportada desde `get_sentence_embedding_dimension()` (384 para e5-small); lanza `EmbeddingError` si `None`.
-- `tests/unit/test_embeddings_provider.py` — 16 tests; modelo mockeado con `np.zeros`, no descarga en CI.
-- **Estado de calidad:** 66/66 tests en verde; cobertura 86%; black, ruff, mypy limpios.
-
-### Pendientes en Fase 1 (4 componentes restantes)
-
-1. **ChromaDB VectorStore** (`feature/chroma-vectorstore`) — implementación de `VectorStore` Protocol con ChromaDB local.
-2. **Retriever** (`feature/retriever`) — implementación de `Retriever` Protocol; búsqueda por similitud + umbral de confianza.
-3. **LLM Provider / Ollama** (`feature/llm-provider`) — implementación de `LLMProvider` con Ollama local.
-4. **PromptManager** (`feature/prompt-manager`) — implementación de `PromptManager` con plantillas migratorias.
-5. **Script de ingesta** (`feature/ingest-script`) — end-to-end: PDF → chunks → embeddings → ChromaDB.
-
-Al cerrar Fase 1 completamente: subir `fail_under` de 30 → 50 en `pyproject.toml` (ADR-004).
-
-### Bugs reales atrapados antes de llegar a producción
+### Bugs reales atrapados en Fase 0–1
 
 1. Aplanado automático de YAML no coincidía con nombres de campo de `Settings`.
 2. Jerarquía de precedencia de Pydantic Settings invertida por defecto.
 3. `src/__init__.py` de más causaba módulo duplicado en mypy.
-4. CI solo instalaba `.[dev]`, nunca `requirements.txt` — pypdf "no encontrado".
-5. Black sin pin → versión CI distinta a local → CI rojo; fix: `black==26.5.1` en `pyproject.toml`.
-6. `list(numpy_array)` produce `np.float32`, no `float` Python; fix: `.tolist()` + `cast`.
+4. CI solo instalaba `.[dev]`, nunca `requirements.txt` → pypdf "no encontrado".
+5. Black sin pin → versión CI distinta a local → CI rojo; fix: `black==26.5.1`.
+6. `list(numpy_array)` produce `np.float32`, no `float` Python; fix: `.tolist() + cast`.
 
 ### Configuración de calidad activa
 
-- `pyproject.toml`: black==26.5.1, Ruff (E/F/I/B/UP/N/SIM), mypy strict en `genai_toolkit.*`,
-  pytest+coverage (`fail_under = 30`, subir a 50 al cerrar Fase 1 completa).
+- `pyproject.toml`: black==26.5.1, Ruff (E/F/I/B/UP/N/SIM), mypy strict en `genai_toolkit.*`, pytest + coverage (`fail_under = 50`).
 - `.github/workflows/ci.yml`: instala `requirements.txt` y `-e ".[dev]"` antes de lint/type/test.
 - `.github/workflows/security.yml`: gitleaks + `pip-audit` con allowlist `security/accepted-vulnerabilities.txt`.
 
@@ -186,41 +156,49 @@ desde PowerShell usar `-F archivo` (no heredoc `@'...'@` — falla con git en PS
 
 | Fase | Contenido | Estado |
 |---|---|---|
-| 0 | Setup, arquitectura, skills, interfaces del toolkit, Configuration Layer, CI/CD básico | **Cerrada** |
-| 1 | MVP local: ingesta (loader PDF + validación), chunking, embeddings, ChromaDB, retriever, respuesta con fuentes | **En curso** — PDF loader ✓, chunker ✓, embeddings ✓ (PR #5); siguiente: ChromaDB |
-| 2 | UI Streamlit + logging básico (Observability Layer real) | Pendiente |
-| 3 | Suite de testing completa, pre-commit, sube cobertura a 70% | Pendiente |
-| 4 | Evaluación RAG (RAGAS + evaluadores propios), incluye mitigación SSRF de `ragas` | Pendiente |
-| 5 | Seguridad: guards in/out, suite de security tests, OWASP checklist — **release v1.0** | Pendiente |
+| 0 | Setup, arquitectura, skills, interfaces del toolkit, Configuration Layer, CI/CD básico | **Cerrada** (incluida en v0.1.0) |
+| 1 | MVP local: PdfLoader, Chunker, Embeddings, ChromaDB, Retriever, OllamaProvider, PromptManager, IngestionPipeline + CLI | **Cerrada** → `v0.1.0` |
+| 2 | UI Streamlit + Observability Layer (logging estructurado JSONL, redacción PII) | **Siguiente** |
+| 3 | Suite de testing completa, pre-commit, sube `fail_under` de 50 → 70% | Pendiente |
+| 4 | Evaluación RAG (RAGAS + evaluadores propios), mitigación SSRF de `ragas` | Pendiente |
+| 5 | Seguridad: guards in/out, suite de security tests, OWASP checklist | Pendiente |
 | 6 | CI/CD avanzado | Pendiente |
 | 7 | Dockerización | Pendiente |
 | 8 | API FastAPI | Pendiente |
 | 9 | Prep cloud | Pendiente |
 
-## 7. La pieza inmediata a implementar: ChromaDB VectorStore
+## 7. La pieza inmediata a implementar: UI Streamlit + Observability (Fase 2)
 
-Es el cuarto componente con lógica real de Fase 1. Debe:
+### Fase 2 — objetivos principales
 
-- Implementar el `VectorStore` Protocol (`src/genai_toolkit/vectorstore/base.py`).
-- Usar ChromaDB en modo persistente local (no servidor remoto en Fase 1).
-- Operaciones requeridas por el Protocol: `add_chunks`, `search`, `delete`, `count`.
-- `search` debe aceptar un vector de query y devolver `list[ScoredChunk]` con
-  score normalizado 0.0–1.0 (similitud coseno; ChromaDB devuelve distancia, convertir).
-- Decidir si la inicialización de la colección va en `__init__` o en un método
-  separado — documentar como ADR si la elección no es obvia.
-- Cubrir con tests unitarios con ChromaDB en modo efímero (`":memory:"` o directorio temporal).
-- Rama: `feature/chroma-vectorstore` desde `develop` actualizado (mergear PR #5 primero).
+1. **`app/streamlit_app.py`** — interfaz de usuario:
+   - Entrada de texto libre (pregunta del usuario), `max_input_chars=2000` (ya en Settings).
+   - Panel de respuesta con citas de fuente/página y badge de confianza (basado en `has_sufficient_context` y scores del retriever).
+   - Refusal UI cuando `has_sufficient_context=False` ("No encontré suficiente contexto para responder con certeza").
+   - Disclaimer legal visible (ya existe en `src/domain/prompt_templates/__init__.py`).
+
+2. **Observability Layer** (`src/genai_toolkit/observability/`):
+   - Logging estructurado a JSONL (schema ya definido en `docs/engineering_skills/06_observability.md`).
+   - `redact_pii=True` activado en Settings por defecto.
+   - Qué loggear: timestamp, query hash (no plaintext), template_id, chunk_ids, scores, latencias por etapa, modelo usado, `has_sufficient_context`.
+
+3. Al cerrar Fase 2: ningún cambio en `fail_under` (permanece en 50).
+
+### Rama sugerida
+
+```bash
+git checkout develop && git pull
+git checkout -b feature/streamlit-ui
+```
 
 ## 8. Cómo seguir trabajando (instrucciones de proceso)
 
-- Mergear `feature/embeddings-provider` (PR #5) → `develop` vía GitHub (verificar CI en verde).
-- Rama nueva desde `develop` actualizado: `git checkout develop && git pull && git checkout -b feature/chroma-vectorstore`.
+- Rama nueva desde `develop` actualizado: `git checkout -b feature/streamlit-ui`.
 - Implementar → `black .` → `ruff check . --fix` → `mypy src/` → `pytest` → commit con
-  Conventional Commits → PR → merge.
+  Conventional Commits → PR → merge a `develop`.
+- Al cerrar Fase 2: PR `develop` → `main`, tag `v0.2.0`, GitHub Release, actualizar CHANGELOG.md.
 - Si surge una decisión no obvia, documentarla como ADR-006 siguiendo el
-  formato de los 5 existentes.
-- Al cerrar Fase 1 completamente (todos los 7 componentes): subir `fail_under` de 30 → 50 en
-  `pyproject.toml` (ADR-004) y actualizar este documento.
+  formato de los 5 existentes en `docs/architecture/adr/`.
 
 ---
 
