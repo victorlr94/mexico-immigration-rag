@@ -81,7 +81,7 @@ ignore_errors = true
 # y documentado del propio proyecto pydantic, no un problema de esta config).
 # No aplica a "genai_toolkit.*" (nuestro propio código, sigue en strict).
 [[tool.mypy.overrides]]
-module = ["pydantic.*", "pydantic_settings.*", "yaml.*"]
+module = ["pydantic.*", "pydantic_settings.*", "yaml.*", "sentence_transformers.*"]
 ignore_missing_imports = true
 
 # ----------------------------------------------------------------------
