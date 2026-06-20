@@ -41,9 +41,7 @@ class VectorStore(Protocol):
         """
         ...
 
-    def search(
-        self, query_embedding: list[float], top_k: int
-    ) -> list[ScoredChunk]:
+    def search(self, query_embedding: list[float], top_k: int) -> list[ScoredChunk]:
         """Busca los `top_k` chunks más similares a un vector de consulta.
 
         Args:

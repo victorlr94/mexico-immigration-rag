@@ -124,9 +124,7 @@ class _YamlSettingsSource(PydanticBaseSettingsSource):
     directamente fuera de este módulo.
     """
 
-    def get_field_value(
-        self, field: Any, field_name: str
-    ) -> tuple[Any, str, bool]:
+    def get_field_value(self, field: Any, field_name: str) -> tuple[Any, str, bool]:
         # Requerido por la interfaz abstracta; no se usa porque
         # sobreescribimos __call__ directamente para resolver todo el
         # dict de una vez (más simple que campo por campo).
