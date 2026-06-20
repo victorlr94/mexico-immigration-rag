@@ -105,15 +105,27 @@ class TestValidation:
             with pytest.raises(TooManyPagesError, match="50 páginas"):
                 loader.load(pdf)
 
-    def test_raises_pdf_parse_error_on_corrupt(
+    def test_raises_pdf_parse_error_on_invalid_mime(
         self, tmp_path: Path, tight_settings: Settings
     ) -> None:
+        """Archivo sin magic bytes %PDF- se rechaza antes de llamar a pypdf."""
+        pdf = tmp_path / "falso.pdf"
+        pdf.write_bytes(b"PK\x03\x04")  # magic bytes de ZIP, no PDF
+
+        loader = PdfLoader(tight_settings)
+        with pytest.raises(PdfParseError, match="magic bytes"):
+            loader.load(pdf)
+
+    def test_raises_pdf_parse_error_on_corrupted_body(
+        self, tmp_path: Path, tight_settings: Settings
+    ) -> None:
+        """Header PDF válido pero cuerpo corrupto: pypdf lanza, loader relanza."""
         pdf = tmp_path / "corrupto.pdf"
-        pdf.write_bytes(b"esto no es un PDF")
+        pdf.write_bytes(b"%PDF-1.4 cuerpo_invalido")
 
         with patch(
             "genai_toolkit.ingestion.pdf_loader.pypdf.PdfReader",
-            side_effect=Exception("invalid PDF header"),
+            side_effect=Exception("invalid xref table"),
         ):
             loader = PdfLoader(tight_settings)
             with pytest.raises(PdfParseError, match="corrupto.pdf"):

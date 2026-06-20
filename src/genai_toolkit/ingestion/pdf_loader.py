@@ -1,6 +1,7 @@
 """Cargador de PDF usando pypdf~=6.0 (ver ADR-002).
 
 Seguridad aplicada antes de abrir el archivo:
+  - Tipo real: magic bytes `%PDF-` (no solo extensión) — ver ADR-005.
   - Tamaño máximo: Settings.max_file_size_mb
   - Páginas máximas: Settings.max_pages
   - Timeout de extracción: _EXTRACTION_TIMEOUT_SECS (protege contra PDFs que
@@ -30,6 +31,7 @@ from genai_toolkit.ingestion.types import (
 logger = logging.getLogger(__name__)
 
 _EXTRACTION_TIMEOUT_SECS = 60
+_PDF_MAGIC = b"%PDF-"
 
 
 class PdfLoader:
@@ -64,6 +66,7 @@ class PdfLoader:
             raise FileNotFoundError(f"Archivo no encontrado: {path}")
 
         self._check_file_size(path)
+        self._check_mime_type(path)
 
         try:
             reader = pypdf.PdfReader(str(path))
@@ -84,6 +87,24 @@ class PdfLoader:
             sum(len(p.text) for p in pages),
         )
         return LoadedDocument(source=path.name, pages=pages, total_pages=total_pages)
+
+    def _check_mime_type(self, path: Path) -> None:
+        """Verifica que el archivo es un PDF real leyendo sus magic bytes.
+
+        Detecta archivos renombrados (.pdf) que en realidad son ZIP, imágenes u
+        otros formatos — sin depender de la extensión ni de librerías externas.
+        """
+        try:
+            with path.open("rb") as f:
+                header = f.read(len(_PDF_MAGIC))
+        except OSError as exc:
+            raise PdfParseError(f"No se pudo leer '{path.name}': {exc}") from exc
+
+        if header != _PDF_MAGIC:
+            raise PdfParseError(
+                f"'{path.name}' no es un PDF válido "
+                "(los magic bytes no corresponden a %PDF-)"
+            )
 
     def _check_file_size(self, path: Path) -> None:
         size_mb = path.stat().st_size / (1024 * 1024)
