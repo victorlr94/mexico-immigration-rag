@@ -5,8 +5,6 @@ cruzada (chunk_overlap < chunk_size), y la jerarquía de precedencia
 (env real > .env > kwargs init > YAML > defaults de clase).
 """
 
-import os
-
 import pytest
 
 from genai_toolkit.config.settings import Settings

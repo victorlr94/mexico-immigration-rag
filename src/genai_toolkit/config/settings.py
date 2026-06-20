@@ -192,7 +192,7 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
 
     @model_validator(mode="after")
-    def _validate_chunk_overlap_smaller_than_size(self) -> "Settings":
+    def _validate_chunk_overlap_smaller_than_size(self) -> Settings:
         """El overlap nunca debe ser >= chunk_size: produciría chunks que no
         avanzan (bucle infinito conceptual en el chunker) o duplicación total.
         """
