@@ -1,0 +1,59 @@
+# Vulnerabilidades conocidas y aceptadas conscientemente
+#
+# Este archivo alimenta el --ignore-vuln de pip-audit en
+# .github/workflows/security.yml. Cada línea no-comentario es un ID de
+# vulnerabilidad (CVE/GHSA/PYSEC) que el job de CI dejará de bloquear.
+#
+# REGLA: ningún ID se agrega aquí sin una justificación escrita abajo y una
+# fecha de revisión. Un CVE nuevo que no esté en esta lista debe seguir
+# fallando el build — ese es el comportamiento correcto, no un bug del CI.
+# Ver ADR-003 para el razonamiento completo de esta estrategia.
+#
+# Formato por entrada:
+#   # <paquete> <version> — <ID> — revisar antes de: <fecha>
+#   #   <justificación breve>
+#   <ID>
+
+# langchain 0.3.30 — GHSA-gr75-jv2w-4656 — revisar antes de: 2026-09-01
+#   Fix disponible en 1.3.9, pero es un salto de versión mayor (0.3 -> 1.x)
+#   sin código existente que dependa de su API para validar compatibilidad
+#   con chromadb/sentence-transformers. Rastreado en Issue #<pendiente>.
+#   Se resuelve junto con langchain-text-splitters y langchain-openai abajo.
+GHSA-gr75-jv2w-4656
+
+# ragas 0.4.3 — CVE-2026-6587 — revisar antes de: 2026-09-01
+#   SSRF en _try_process_local_file/_try_process_url vía el argumento
+#   retrieved_contexts. SIN PARCHE disponible del proveedor a la fecha.
+#   Mitigación planeada para Fase 4 (Evaluación): restringir red saliente
+#   del proceso de evaluación a rangos internos/localhost antes de invocar
+#   RAGAS. No hay código que use ragas todavía (Fase 0).
+CVE-2026-6587
+
+# langchain-text-splitters 0.3.11 — PYSEC-2026-77 — revisar antes de: 2026-09-01
+#   Dependencia transitiva de langchain. Fix en 1.1.2; se resuelve junto con
+#   el upgrade de langchain (ver entrada de GHSA-gr75-jv2w-4656 arriba).
+PYSEC-2026-77
+
+# transformers 4.57.6 — PYSEC-2025-217 — revisar antes de: 2026-09-01
+#   Sin fix version reportada por pip-audit al momento de esta revisión.
+#   Vigilar; no forzar actualización sin fix confirmado.
+PYSEC-2025-217
+
+# transformers 4.57.6 — CVE-2026-1839 — revisar antes de: 2026-09-01
+#   Fix en 5.0.0rc3 (release candidate, no estable). No se adopta un RC en
+#   una dependencia de la que depende sentence-transformers. Vigilar hasta
+#   que exista una 5.0.0 estable.
+CVE-2026-1839
+
+# diskcache 5.6.3 — CVE-2025-69872 — revisar antes de: 2026-09-01
+#   Dependencia transitiva (probablemente vía langchain o sentence-
+#   transformers). Sin fix version reportada. Vigilar.
+CVE-2025-69872
+
+# langchain-openai 0.3.35 — PYSEC-2026-76 — revisar antes de: 2026-09-01
+#   Dependencia transitiva de langchain. Fix en 1.1.14; se resuelve junto
+#   con el upgrade de langchain (ver entrada de GHSA-gr75-jv2w-4656 arriba).
+#   Nota: el proyecto no usa el proveedor OpenAI (LLM es local vía Ollama);
+#   esta dependencia transitiva probablemente pueda eliminarse del todo al
+#   revisar el árbol de dependencias de langchain-community.
+PYSEC-2026-76
