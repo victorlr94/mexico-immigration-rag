@@ -32,18 +32,15 @@ def tight_settings() -> Settings:
     return Settings(max_file_size_mb=5, max_pages=10)
 
 
-def _mock_reader(
-    num_pages: int, page_texts: list[str] | None = None
-) -> MagicMock:
+def _mock_reader(num_pages: int, page_texts: list[str] | None = None) -> MagicMock:
     """PdfReader mock con `num_pages` páginas y textos opcionales."""
     pages = []
     for i in range(num_pages):
         page = MagicMock()
-        text = (
-            page_texts[i]
-            if page_texts and i < len(page_texts)
-            else f"Página {i + 1}"
-        )
+        if page_texts and i < len(page_texts):
+            text = page_texts[i]
+        else:
+            text = f"Página {i + 1}"
         page.extract_text.return_value = text
         pages.append(page)
 
@@ -76,9 +73,7 @@ class TestValidation:
 
         original_stat = Path.stat
 
-        def fake_stat(
-            self_path: Path, *args: object, **kwargs: object
-        ) -> object:
+        def fake_stat(self_path: Path, *args: object, **kwargs: object) -> object:
             if self_path == pdf:
                 stat = MagicMock()
                 stat.st_size = 10 * 1024 * 1024  # 10 MB > límite de 5 MB
