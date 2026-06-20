@@ -28,6 +28,9 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+genai_toolkit = ["py.typed"]
+
 # ----------------------------------------------------------------------
 # Black
 # ----------------------------------------------------------------------
@@ -57,6 +60,7 @@ known-first-party = ["genai_toolkit", "application", "domain"]
 # ----------------------------------------------------------------------
 [tool.mypy]
 python_version = "3.11"
+mypy_path = "src"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -70,6 +74,15 @@ strict = true
 [[tool.mypy.overrides]]
 module = "notebooks.*"
 ignore_errors = true
+
+# Librerías de terceros sin stubs de tipos completos para mypy, o cuyo
+# tipado interno mypy no resuelve de forma consistente entre versiones.
+# Ver: https://github.com/pydantic/pydantic/discussions/9446 (issue conocido
+# y documentado del propio proyecto pydantic, no un problema de esta config).
+# No aplica a "genai_toolkit.*" (nuestro propio código, sigue en strict).
+[[tool.mypy.overrides]]
+module = ["pydantic.*", "pydantic_settings.*", "yaml.*"]
+ignore_missing_imports = true
 
 # ----------------------------------------------------------------------
 # pytest + coverage
