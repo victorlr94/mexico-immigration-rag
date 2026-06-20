@@ -105,8 +105,8 @@ markers = [
 # el día 1 bloquearía cada PR sin reflejar ningún problema real.
 #
 # Plan de incremento (actualizar este valor y la fecha al cerrar cada fase):
-#   Fase 0 (actual):  30%  — solo Settings tiene lógica + tests
-#   Fase 1:           50%  — ingestion, chunking, embeddings, vectorstore
-#   Fase 3:           70%  — meta original, con retriever/pipeline implementados
-fail_under = 30
+#   Fase 0:  30%  — solo Settings tiene lógica + tests
+#   Fase 1 (actual):  50%  — ingestion, chunking, embeddings, vectorstore, retriever, llm, prompts
+#   Fase 3:           70%  — meta original, con pipeline completo y tests de integración
+fail_under = 50
 show_missing = true
