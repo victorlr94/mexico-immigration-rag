@@ -33,4 +33,11 @@ jobs:
       - name: Install pip-audit
         run: pip install pip-audit
       - name: Audit dependencies
-        run: pip-audit -r requirements.txt
+        # Las vulnerabilidades ya triadas y aceptadas conscientemente viven en
+        # security/accepted-vulnerabilities.txt, con su justificación y fecha
+        # de revisión — ver ese archivo y el ADR-003 antes de tocar esta lista.
+        # Cualquier CVE NUEVO que no esté ahí seguirá fallando este job, que es
+        # el comportamiento deseado (gate real, no decorativo).
+        run: |
+          IGNORE_FLAGS=$(grep -v '^#' security/accepted-vulnerabilities.txt | grep -v '^$' | sed 's/^/--ignore-vuln /' | tr '\n' ' ')
+          pip-audit -r requirements.txt $IGNORE_FLAGS
