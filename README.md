@@ -1,148 +1,306 @@
 # Asesor Migratorio RAG · Mexico Immigration RAG Assistant
 
-> Asistente RAG que responde, en lenguaje natural, consultas sobre documentación
-> pública migratoria de México. Construido íntegramente con tecnologías open
-> source y modelos locales. Diseñado con un **núcleo de AI Engineering agnóstico
-> de dominio** y una **capa fina específica del dominio migratorio**, de modo que
-> el sistema pueda reutilizarse en banca, telco, legal o compliance cambiando
-> solo la capa de dominio.
+[![CI](https://github.com/victorlr94/mexico-immigration-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/victorlr94/mexico-immigration-rag/actions/workflows/ci.yml)
+[![Security](https://github.com/victorlr94/mexico-immigration-rag/actions/workflows/security.yml/badge.svg)](https://github.com/victorlr94/mexico-immigration-rag/actions/workflows/security.yml)
+[![Coverage](https://img.shields.io/badge/coverage-97.96%25-brightgreen)](https://github.com/victorlr94/mexico-immigration-rag)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
 
-> ⚠️ **Estado:** POC en desarrollo · Fase 0 (setup y arquitectura).
+Asistente RAG que responde, en lenguaje natural, consultas sobre documentación
+pública migratoria de México. Cada respuesta está **fundamentada en los documentos
+oficiales**, cita la fuente y página, y va acompañada de un disclaimer claro.
 
----
-
-## Tabla de contenidos
-
-- [Problema que resuelve](#problema-que-resuelve)
-- [Arquitectura](#arquitectura)
-- [Stack tecnológico](#stack-tecnológico)
-- [Instalación](#instalación)
-- [Ejecución](#ejecución)
-- [Ejemplo de uso](#ejemplo-de-uso)
-- [Evaluación](#evaluación)
-- [Seguridad](#seguridad)
-- [Limitaciones](#limitaciones)
-- [Disclaimer](#disclaimer)
-- [Roadmap](#roadmap)
-- [Aprendizajes](#aprendizajes)
-- [Próximos pasos](#próximos-pasos)
+Construido íntegramente con **tecnologías open source y modelos locales** (sin APIs
+de pago). El núcleo (`src/genai_toolkit/`) es **agnóstico de dominio**: cambiar
+la capa fina de dominio adapta el sistema a banca, telco, legal o compliance.
 
 ---
 
-## Problema que resuelve
+## Demo rápida
 
-La información migratoria pública está dispersa en PDFs, guías y FAQs difíciles
-de consultar. Este asistente permite preguntar en lenguaje natural y obtener
-respuestas **fundamentadas en los documentos**, con cita de fuente y página, una
-señal de confianza, y un disclaimer claro de que no constituye asesoría oficial.
+> **Ejemplo de consulta y respuesta con el modelo llama3.1:8b local:**
+>
+> **Q:** ¿Qué condiciones de estancia reconoce la Ley de Migración para los
+> extranjeros?
+>
+> **R:** La Ley de Migración reconoce tres condiciones de estancia para los
+> extranjeros: visitante, residente temporal y residente permanente. *(Fuente:
+> Ley_de_Migracion.pdf, Página 37)*
+>
+> *AVISO: Este asistente es una herramienta informativa y no constituye asesoría
+> legal. Para situaciones específicas consulta a un abogado migratorio certificado
+> o al INM.*
+
+<!-- Reemplaza con captura real de la UI: docs/assets/demo_screenshot.png -->
+
+---
+
+## Quickstart (5 minutos)
+
+**Prerequisitos:** Python 3.11, [Ollama](https://ollama.com) instalado.
+
+```bash
+# 1. Clonar e instalar
+git clone https://github.com/victorlr94/mexico-immigration-rag.git
+cd mexico-immigration-rag
+python -m venv .venv
+.venv\Scripts\Activate.ps1          # Windows
+# source .venv/bin/activate           # macOS / Linux
+pip install -e ".[dev]"
+
+# 2. Descargar el modelo (~4.9 GB, solo la primera vez)
+ollama pull llama3.1:8b
+
+# 3. Indexar el corpus de muestra (4 PDFs oficiales, 1 704 chunks)
+python scripts/ingest.py data/samples/*.pdf
+
+# 4. Lanzar el asistente
+streamlit run app/streamlit_app.py
+```
+
+O usando el Makefile:
+
+```bash
+make demo     # instala + descarga modelo + indexa corpus
+make run      # lanza Streamlit
+```
+
+---
 
 ## Arquitectura
 
-> _Diagrama Mermaid pendiente de incorporar (ver `docs/architecture/`)._
+El sistema separa el **núcleo reutilizable** del **dominio específico** (ADR-001).
+Las dependencias solo fluyen hacia abajo.
 
-El sistema se organiza en capas con dependencias unidireccionales. El núcleo
-reutilizable vive en `src/genai_toolkit/`; lo específico del dominio en
-`src/domain/`. Ver los Architecture Decision Records en
-[`docs/architecture/adr/`](docs/architecture/adr/).
+```mermaid
+flowchart TD
+    subgraph Presentación
+        UI["🖥️ Streamlit\napp/streamlit_app.py"]
+    end
+
+    subgraph Aplicación
+        SVC["RAGService\napplication/rag_service.py"]
+    end
+
+    subgraph genai_toolkit["genai_toolkit/ — agnóstico de dominio (ADR-001)"]
+        direction LR
+        RET["SimpleRetriever"]
+        EMB["SentenceTransformer\nmultilingual-e5-small"]
+        VEC["ChromaVectorStore\n(local, persistente)"]
+        LLM["OllamaProvider\nllama3.1:8b"]
+        PM["RagPromptManager"]
+        SEC["Security Guards\n(input + document)"]
+        OBS["Observabilidad\n(JSONL, PII redact)"]
+        EVAL["Evaluadores\n(deterministas)"]
+    end
+
+    subgraph Dominio
+        TPL["Prompt Templates\nRAG_GROUNDING_V1"]
+        DISC["Disclaimer legal\nmigración MX"]
+    end
+
+    subgraph Corpus
+        PDF["PDFs oficiales\n(INM / gob.mx)"]
+        ING["IngestionPipeline\nchunking + embed"]
+    end
+
+    UI --> SVC
+    SVC --> RET & LLM & PM & SEC & OBS
+    RET --> EMB & VEC
+    PM --> TPL & DISC
+    PDF --> ING --> EMB --> VEC
+```
+
+### Flujo de ingesta
+
+```
+PDF → validación de seguridad → chunking (500 chars/80 overlap) → embeddings → ChromaDB
+```
+
+### Flujo de consulta
+
+```
+Pregunta → validación (longitud, vacía) → embed query → búsqueda top-6 → filtro min_score=0.70
+         → contexto suficiente? → SÍ: generar con Ollama → respuesta + fuentes + disclaimer
+                                → NO: refusal controlado ("No encontré información suficiente…")
+```
+
+---
 
 ## Stack tecnológico
 
-| Capa | Herramienta |
-|------|-------------|
-| Lenguaje | Python 3.11 |
-| Orquestación RAG | LangChain |
-| Vector store | ChromaDB (local) |
-| Embeddings | Sentence Transformers (multilingüe) |
-| LLM | Ollama (Llama 3.1 / Qwen2.5, local) |
-| Interfaz | Streamlit |
-| Evaluación | RAGAS + evaluadores propios |
-| Calidad | Black · Ruff · mypy · pytest |
-| CI/CD | GitHub Actions |
+| Capa | Herramienta | Por qué |
+|---|---|---|
+| Lenguaje | Python 3.11 | Tipado estricto, ecosystem AI |
+| Orquestación RAG | LangChain | Abstracción de LLM + integración RAGAS |
+| Vector store | ChromaDB (local) | Sin servidor, persistente, API limpia |
+| Embeddings | `intfloat/multilingual-e5-small` | Multilingüe ES/EN, ~117 MB, corre en CPU |
+| LLM | Ollama · `llama3.1:8b` | Local, sin APIs de pago, reproducible |
+| Interfaz | Streamlit | Prototipado rápido, fácil de extender |
+| Evaluación | RAGAS + evaluadores propios | Métricas estándar + deterministas sin LLM |
+| Calidad | Black · Ruff · mypy strict | Formato consistente, tipos seguros |
+| CI/CD | GitHub Actions | Lint + type check + tests + `pip-audit` |
 
-## Instalación
+---
 
-> _Guía detallada en [`docs/installation.md`](docs/installation.md) (pendiente)._
+## Corpus de muestra
 
-```bash
-git clone <repo-url>
-cd mexico-immigration-rag
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
-pre-commit install
-cp .env.example .env   # ajusta los valores
-```
+4 documentos públicos oficiales del Gobierno de México incluidos en `data/samples/`:
 
-Prerequisitos: Python 3.11, [Ollama](https://ollama.com) instalado y un modelo
-descargado (`ollama pull llama3.1:8b`).
+| Documento | Páginas | Chunks | Fuente |
+|---|---|---|---|
+| Ley de Migración | 72 | 513 | DOF / gob.mx |
+| Reglamento Ley de Nacionalidad | 15 | 110 | DOF / gob.mx |
+| Lineamientos de visas (25-jul-2025) | 41 | 379 | INM |
+| Lineamientos trámites y procedimientos | 84 | 702 | INM |
+| **Total** | **212** | **1 704** | |
 
-## Ejecución
-
-```bash
-python scripts/ingest.py      # ingesta de documentos (pendiente)
-streamlit run app/streamlit_app.py   # interfaz (pendiente)
-python scripts/evaluate.py    # evaluación RAG (pendiente)
-```
-
-## Ejemplo de uso
-
-> _Pendiente: consulta real con su respuesta, fuentes y disclaimer._
+---
 
 ## Evaluación
 
-> _Pendiente: tabla de métricas (faithfulness, relevancy, etc.) y umbrales._
-> Ver [RAG Evaluation Skill](docs/engineering_skills/05_rag_evaluation.md).
+El pipeline de evaluación tiene dos capas (ADR-006):
+
+- **Métricas deterministas** — siempre activas, sin LLM: `refusal_quality`,
+  `citation_accuracy`, `hallucination_rate`. Reproducibles bit a bit, testeables en CI.
+- **RAGAS con juez local** — `faithfulness`, `answer_relevancy`, `context_precision`,
+  `context_recall` usando el mismo Ollama local como juez. Best-effort (ver ADR-006).
+
+### Resultados sobre el corpus de 13 preguntas
+
+| Métrica | Valor | Umbral | Estado |
+|---|---|---|---|
+| `refusal_quality` | **0.923** | ≥ 0.90 | ✓ |
+| `hallucination_rate` | **0.000** | ≤ 0.10 | ✓ |
+| `citation_accuracy` | **1.000** | informativo | — |
+| `faithfulness` | pendiente† | ≥ 0.80 | — |
+| `answer_relevancy` | pendiente† | ≥ 0.75 | — |
+| `context_precision` | pendiente† | ≥ 0.70 | — |
+| `context_recall` | pendiente† | ≥ 0.70 | — |
+
+†*RAGAS baseline se genera localmente con `python scripts/evaluate.py --update-baseline`
+(requiere Ollama activo). Ver `evaluations/results/baseline.json` tras correrlo.*
+
+```bash
+python scripts/evaluate.py --no-ragas      # métricas deterministas (rápido, sin LLM)
+python scripts/evaluate.py                 # evaluación completa con RAGAS
+python scripts/evaluate.py --update-baseline  # guarda como baseline.json
+```
+
+---
+
+## Testing y calidad
+
+```
+276 tests · 97.96% cobertura · mypy strict (genai_toolkit/) · Black + Ruff
+```
+
+| Tipo | Tests | Qué cubre |
+|---|---|---|
+| Unit | ~220 | Configuración, chunking, embeddings, retrieval, evaluadores, seguridad |
+| Integration | 20 | ChromaDB E2E, retrieval semántico, ingesta real con PDFs |
+| Security | 39 | Adversarial (OWASP LLM01/LLM04), corpus poisoning, guards |
+
+```bash
+make test          # unit + security (sin integración, rápido)
+make test-all      # suite completa (requiere Ollama)
+```
+
+Los tests de integración y E2E se excluyen de CI (requieren modelo local).
+Los tests de seguridad sí corren en CI — no necesitan modelo.
+
+---
 
 ## Seguridad
 
-Mitigaciones contra prompt injection (directo e indirecto desde documentos),
-alucinaciones, fuga de datos y documentos maliciosos. Checklist OWASP Top 10 for
-LLM Applications. Ver [Security Skill](docs/engineering_skills/04_security.md).
+Mitigaciones implementadas siguiendo OWASP Top 10 for LLM Applications:
 
-## Limitaciones
+| Riesgo | Mitigación |
+|---|---|
+| LLM01 — Prompt Injection | Template con delimitadores `<context>...</context>`; contexto marcado como dato |
+| LLM04 — Model DoS | Límites: 2 000 chars por query, 25 MB / 300 páginas por PDF |
+| LLM06 — Data Disclosure | `redact_pii=true` en logs; hashing de queries en observabilidad |
+| Corpus Poisoning | Validación de magic bytes, tamaño, página count antes de indexar |
 
-- No constituye asesoría legal ni migratoria oficial.
-- Responde solo con base en los documentos cargados.
-- La información puede estar desactualizada respecto a fuentes oficiales.
-- Calidad limitada por el modelo local y el corpus disponible.
+Dependencias auditadas con `pip-audit` como gate bloqueante en CI.
+Vulnerabilidades aceptadas documentadas con justificación y fecha de revisión
+en [`security/accepted-vulnerabilities.txt`](security/accepted-vulnerabilities.txt) (ADR-003).
 
-## Disclaimer
+---
 
-> **Aviso.** Este asistente es una herramienta informativa basada en documentos
-> públicos y **no constituye asesoría legal ni migratoria oficial**. Las
-> respuestas se generan automáticamente y pueden ser incompletas o estar
-> desactualizadas. Verifica siempre con las fuentes oficiales y, para decisiones
-> que afecten tu situación migratoria, consulta a un profesional acreditado.
+## Decisiones de arquitectura (ADRs)
+
+| # | Decisión | Resumen |
+|---|---|---|
+| [ADR-001](docs/architecture/adr/ADR-001-domain-agnostic-toolkit.md) | Toolkit agnóstico de dominio | `genai_toolkit/` sin referencias migratorias; reutilizable en otros dominios |
+| [ADR-002](docs/architecture/adr/ADR-002-pdf-loader-pypdf.md) | `pypdf ~= 6.0` para PDFs | Resuelve CVEs de DoS; PyMuPDF tiene path traversal + licencia AGPL incompatible |
+| [ADR-003](docs/architecture/adr/ADR-003-pip-audit-gate.md) | `pip-audit` como gate bloqueante | Lista explícita de excepciones revisadas con fecha; nuevas vulns bloquean CI |
+| [ADR-004](docs/architecture/adr/ADR-004-progressive-coverage-threshold.md) | Coverage progresivo | 30% → 50% → 70% por fase; evita falsos negativos en fases de interfaces puras |
+| [ADR-006](docs/architecture/adr/ADR-006-evaluation-local-judge-degradation.md) | Evaluación en dos capas | Deterministas siempre; RAGAS best-effort con Ollama local (sin APIs de pago) |
+
+---
 
 ## Roadmap
 
 | Fase | Objetivo | Estado |
-|------|----------|--------|
-| 0 | Setup y arquitectura | 🟡 En curso |
-| 1 | MVP local RAG | ⚪ Pendiente |
-| 2 | UI Streamlit + logging | ⚪ Pendiente |
-| 3 | Testing, linting, type checking | ⚪ Pendiente |
-| 4 | Evaluación RAG | ⚪ Pendiente |
-| 5 | Seguridad + red teaming | ⚪ Pendiente |
-| 6 | CI/CD | ⚪ Pendiente |
+|---|---|---|
+| 0 | Setup, arquitectura, interfaces, configuración | ✅ Completada — v0.1.0 |
+| 1 | MVP RAG: ingesta, chunking, embeddings, retrieval, LLM, prompts | ✅ Completada — v0.2.0 |
+| 2 | UI Streamlit + observabilidad | ✅ Completada — v0.2.0 |
+| 3 | Testing (276 tests, 97.96% cov), linting, type checking | ✅ Completada — v0.3.0 |
+| 4 | Evaluación RAG (RAGAS + evaluadores propios) + vitrina MVP | 🟡 En curso — v0.4.0 |
+| 5 | Seguridad + red teaming completo | ⚪ Pendiente |
+| 6 | CI/CD avanzado | ⚪ Pendiente (base ya existe) |
 | 7 | Dockerización | ⚪ Pendiente |
 | 8 | API FastAPI | ⚪ Pendiente |
 | 9 | Preparación cloud | ⚪ Pendiente |
 
-## Aprendizajes
+---
 
-> _Se irá completando: decisiones, trade-offs y lecciones del desarrollo._
+## Estructura del proyecto
 
-## Próximos pasos
+```
+src/
+├── genai_toolkit/          # Núcleo reutilizable (ADR-001)
+│   ├── config/             # Settings con jerarquía de precedencia
+│   ├── embeddings/         # SentenceTransformerProvider
+│   ├── vectorstore/        # ChromaVectorStore
+│   ├── retrieval/          # SimpleRetriever + tipos compartidos
+│   ├── llm/                # OllamaProvider
+│   ├── prompts/            # RagPromptManager
+│   ├── pipeline/           # IngestionPipeline
+│   ├── security/           # Guards de entrada + documentos
+│   ├── evaluation/         # Evaluadores deterministas
+│   └── observability/      # Logger + JSONL store
+├── domain/                 # Dominio migratorio mexicano
+│   └── prompt_templates/   # RAG_GROUNDING_V1 + disclaimer
+└── application/            # Orquestación
+    └── rag_service.py      # RAGService: única clase que une todo
 
-Definir las interfaces (Protocols) del `genai_toolkit/` y la Configuration Layer.
+app/
+└── streamlit_app.py        # Interfaz de usuario
+
+scripts/
+├── ingest.py               # CLI de ingesta
+└── evaluate.py             # CLI de evaluación RAG
+
+data/samples/               # Corpus de muestra (4 PDFs oficiales)
+evaluations/                # Dataset + resultados de evaluación
+docs/architecture/adr/      # Architecture Decision Records
+```
 
 ---
 
-## Guías de ingeniería
+## Disclaimer
 
-Este proyecto sigue 7 skills de ingeniería reutilizables documentadas en
-[`docs/engineering_skills/`](docs/engineering_skills/).
+> **Aviso legal.** Este asistente es una herramienta informativa basada en
+> documentos públicos y **no constituye asesoría legal ni migratoria oficial**.
+> Las respuestas se generan automáticamente y pueden ser incompletas o
+> desactualizadas. Verifica siempre con las fuentes oficiales del INM y, para
+> decisiones que afecten tu situación migratoria, consulta a un profesional
+> acreditado.
 
 ## Licencia
 
-Ver [LICENSE](LICENSE).
+[MIT](LICENSE) — los documentos en `data/samples/` son de dominio público del
+Gobierno de México (Diario Oficial de la Federación / INM).
