@@ -2,7 +2,15 @@
 
 ## Estado
 
-Aceptado · Fase 0
+Aceptado · Actualizado en Fase 3 (2026-06-20)
+
+**Historial de cambios:**
+
+| Fecha | Fase | fail_under anterior | fail_under nuevo | Motivo |
+|---|---|---|---|---|
+| 2026-06-20 | Fase 0 → 1 | — | 30% | Setup inicial; solo Settings implementado |
+| 2026-06-20 | Fase 1 → 2 | 30% | 50% | MVP RAG completo; ingestion, embeddings, LLM, prompts |
+| 2026-06-20 | Fase 3 | 50% | **70%** | Suite completa: unit + security (39 tests) + integración (20 tests) |
 
 ## Contexto
 

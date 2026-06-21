@@ -119,7 +119,8 @@ El MVP RAG local está 100% implementado y mergeado a `main`.
 | `IngestionPipeline` | `src/genai_toolkit/pipeline/ingest.py` | ~10 tests |
 | `scripts/ingest.py` | CLI de ingesta end-to-end | tests de integración |
 
-**Total al cierre de Fase 2**: 221 tests; **97.85% de cobertura**; `fail_under = 50` (ADR-004).
+**Total al cierre de Fase 3**: 260 tests (unit + security); **97.85% de cobertura**; `fail_under = 70` (ADR-004).
+Los 20 tests de integración (`@pytest.mark.integration`) se excluyen del CI rápido — requieren el modelo real de 117 MB.
 
 ### Componentes añadidos en Fase 2
 
@@ -174,7 +175,7 @@ desde PowerShell usar `-F archivo` (no heredoc `@'...'@` — falla con git en PS
 | 0 | Setup, arquitectura, skills, interfaces del toolkit, Configuration Layer, CI/CD básico | **Cerrada** (incluida en v0.1.0) |
 | 1 | MVP local: PdfLoader, Chunker, Embeddings, ChromaDB, Retriever, OllamaProvider, PromptManager, IngestionPipeline + CLI | **Cerrada** → `v0.1.0` |
 | 2 | UI Streamlit + Observability Layer (logging estructurado JSONL, redacción PII) | **Cerrada** → `v0.2.0` |
-| 3 | Suite de testing completa, pre-commit, sube `fail_under` de 50 → 70% | **Siguiente** |
+| 3 | Suite de testing completa, pre-commit, sube `fail_under` de 50 → 70% | **Cerrada** → `v0.3.0` |
 | 4 | Evaluación RAG (RAGAS + evaluadores propios), mitigación SSRF de `ragas` | Pendiente |
 | 5 | Seguridad: guards in/out, suite de security tests, OWASP checklist | Pendiente |
 | 6 | CI/CD avanzado | Pendiente |
@@ -182,45 +183,46 @@ desde PowerShell usar `-F archivo` (no heredoc `@'...'@` — falla con git en PS
 | 8 | API FastAPI | Pendiente |
 | 9 | Prep cloud | Pendiente |
 
-## 7. La pieza inmediata a implementar: Testing Suite (Fase 3)
+## 7. ✅ Fase 3 cerrada — Testing Suite (v0.3.0, 2026-06-20)
 
-### Fase 3 — objetivos principales
+### Lo que se implementó
 
-1. **Pre-commit hooks**: Black, Ruff, mypy (strict en `genai_toolkit.*`) — impedir que código
-   con lint o type errors entre al repo sin CI. Configurar `.pre-commit-config.yaml`.
+1. **Pre-commit hooks** — `.pre-commit-config.yaml` actualizado: Black 26.5.1, ruff v0.15.18,
+   mypy v2.1.0 scope `^src/genai_toolkit/`, hooks de higiene y secret scanning (gitleaks).
 
-2. **Tests de integración** (`tests/integration/`):
-   - `test_ingestion_e2e.py`: PDF real (pequeño, sin datos sensibles) → loader → chunker → embedder → store → count.
-   - `test_retrieval_e2e.py`: query real → retriever sobre ChromaDB en directorio temporal.
-   - Estos tests se marcan con `@pytest.mark.integration` y se excluyen del run de CI rápido.
+2. **Suite de integración** (`tests/integration/`, 20 tests, `@pytest.mark.integration`):
+   - `test_chroma_e2e.py`: ChromaVectorStore real con vectores fijos (sin modelo)
+   - `test_retrieval_e2e.py`: SimpleRetriever + SentenceTransformerProvider + ChromaDB reales
+   - `test_ingestion_e2e.py`: IngestionPipeline con blank PDF y con LoadedDocument de texto
+   - CI actualizado: `pytest -m "not integration and not e2e"` en el job rápido
 
-3. **Tests de seguridad** (`tests/security/`): siguiendo la skill `04_security.md`:
-   - Prompt injection desde PDF (caracteres de control → chunker los sanitiza).
-   - Input demasiado largo (RAGService rechaza antes de retrieval).
-   - Archivo que no es PDF (magic bytes incorrectos).
+3. **Suite de seguridad** (`tests/security/`, 39 tests, `@pytest.mark.security`):
+   - `test_input_guards.py`: RAGService rechaza vacío/whitespace/oversized antes del pipeline
+   - `test_document_guards.py`: PdfLoader rechaza ZIP/DOCX/HTML disfrazados, sobredimensionados, corruptos
+   - `test_chunker_sanitization.py`: sanitización de control chars + integridad de marcadores `<context>`
 
-4. **Subir `fail_under` de 50 → 70%** (ADR-004): requiere cubrir los módulos con menos
-   cobertura (`chroma.py` líneas 82-83, 102-103, 129-130; `sliding_window_chunker.py` etc.).
-   Actualizar `pyproject.toml` y este ADR al cerrar la fase.
+4. **`fail_under` = 70%** — meta de ADR-004 alcanzada; ADR-004 actualizado con historial.
 
-5. Al cerrar Fase 3: PR `develop` → `main`, tag `v0.3.0`, GitHub Release, CHANGELOG.
+### Siguiente: Fase 4 — Evaluación RAG (RAGAS)
 
-### Rama sugerida
+Rama sugerida: `feature/ragas-evaluation`
 
-```bash
-git checkout develop && git pull
-git checkout -b feature/testing-suite
-```
 
 ## 8. Cómo seguir trabajando (instrucciones de proceso)
 
-- Rama nueva desde `develop` actualizado: `git checkout -b feature/testing-suite`.
+- Rama nueva desde `develop` actualizado: `git checkout -b feature/<nombre>`.
 - Implementar → `black .` → `ruff check . --fix` → `mypy src/` → `pytest` → commit con
   Conventional Commits → PR → merge a `develop`.
-- Al cerrar Fase 3: PR `develop` → `main`, tag `v0.3.0`, GitHub Release, actualizar CHANGELOG.md
-  y subir `fail_under` a 70 en `pyproject.toml`.
-- Si surge una decisión no obvia, documentarla como ADR-006 siguiendo el
+- Al cerrar Fase N: PR `develop` → `main`, tag `vX.Y.0`, GitHub Release, actualizar CHANGELOG.md.
+- Si surge una decisión no obvia, documentarla como ADR-006+ siguiendo el
   formato de los 5 existentes en `docs/architecture/adr/`.
+
+### Para ejecutar los tests de integración localmente
+
+```bash
+# Requiere el modelo intfloat/multilingual-e5-small descargado
+pytest -m integration -v
+```
 
 ---
 

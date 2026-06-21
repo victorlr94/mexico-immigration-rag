@@ -106,7 +106,7 @@ markers = [
 #
 # Plan de incremento (actualizar este valor y la fecha al cerrar cada fase):
 #   Fase 0:  30%  — solo Settings tiene lógica + tests
-#   Fase 1 (actual):  50%  — ingestion, chunking, embeddings, vectorstore, retriever, llm, prompts
-#   Fase 3:           70%  — meta original, con pipeline completo y tests de integración
-fail_under = 50
+#   Fase 1:  50%  — ingestion, chunking, embeddings, vectorstore, retriever, llm, prompts
+#   Fase 3 (actual):  70%  — meta original; suite completa (unit + security + integración)
+fail_under = 70
 show_missing = true

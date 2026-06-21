@@ -34,5 +34,5 @@ jobs:
       - name: mypy (type check)
         run: mypy src/
 
-      - name: pytest (tests + coverage)
-        run: pytest
+      - name: pytest (unit + security — sin integración)
+        run: pytest -m "not integration and not e2e"
