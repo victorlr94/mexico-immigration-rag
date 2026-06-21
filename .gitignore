@@ -9,6 +9,12 @@ data/raw/*
 data/processed/*
 !data/processed/.gitkeep
 
+# Excepción: corpus de muestra pequeño y de licencia pública para el demo
+# (procedencia documentada en data/samples/README.md). Versionado a propósito
+# para que `git clone` + ingesta funcione sin pasos manuales de descarga.
+!data/samples/
+!data/samples/**
+
 # Índices y artefactos del vector store
 *.chroma/
 chroma_db/
