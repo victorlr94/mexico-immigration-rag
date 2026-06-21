@@ -8,6 +8,48 @@ proyecto se adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [0.3.0] - 2026-06-20
+
+Tercera release de portfolio: suite de testing completa con enfoque en
+seguridad — 260 tests, pre-commit hooks endurecidos y umbral de cobertura
+en 70% (meta de ADR-004 alcanzada).
+
+### Added — Fase 3: Testing Suite + Pre-commit
+
+- `.pre-commit-config.yaml` actualizado a versiones actuales: Black 26.5.1,
+  ruff-pre-commit v0.15.18, mirrors-mypy v2.1.0; scope de mypy ajustado a
+  `^src/genai_toolkit/` (solo el núcleo reutilizable en modo estricto);
+  hooks `check-toml`, `detect-private-key` añadidos
+- **Suite de integración** (`tests/integration/`, 20 tests, `@pytest.mark.integration`):
+  - `test_chroma_e2e.py` — ChromaVectorStore real: add, count, search, delete,
+    upsert semántico, metadata roundtrip `page=None↔-1`
+  - `test_retrieval_e2e.py` — SimpleRetriever + SentenceTransformerProvider real:
+    dimensión 384, relevancia semántica, threshold, orden por score descendente
+  - `test_ingestion_e2e.py` — IngestionPipeline: blank PDF → 0 chunks, LoadedDocument
+    con texto → chunks indexados, compatibilidad de dimensiones embedder↔ChromaDB
+  - Fixture `blank_pdf` (session-scoped): PDF mínimo válido generado por pypdf
+  - CI actualizado: `pytest -m "not integration and not e2e"` en el job rápido
+- **Suite de seguridad** (`tests/security/`, 39 tests, `@pytest.mark.security`):
+  - `test_input_guards.py` — RAGService rechaza vacío, whitespace, oversized y
+    payload masivo ANTES de llamar al retriever o LLM (LLM01, LLM04)
+  - `test_document_guards.py` — PdfLoader rechaza ZIP/DOCX/HTML disfrazados
+    de PDF, archivos sobredimensionados, PDFs con > max_pages, PDFs corruptos
+  - `test_chunker_sanitization.py` — SlidingWindowChunker sanitiza chars de
+    control (null bytes, 0x01-0x1f, DEL); template RAG contiene `<context>…</context>`
+    que trata el corpus como dato, no instrucción (LLM01 indirecto)
+
+### Changed
+
+- Umbral de cobertura: 50% → **70%** (ADR-004, cierre Fase 3)
+- ADR-004 actualizado con historial completo de incrementos (Fase 0→1→3)
+
+### Stats
+
+- 260 tests (unit + security); 97.85% de cobertura
+- 4 PRs de feature integrados a develop (#16, #17, #18, #19)
+
+---
+
 ## [0.2.0] - 2026-06-20
 
 Segunda release de portfolio: sistema RAG completamente interactivo —
