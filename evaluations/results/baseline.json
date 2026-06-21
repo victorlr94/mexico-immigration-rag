@@ -1,0 +1,237 @@
+{
+  "timestamp": "2026-06-21T16:30:50.690272+00:00",
+  "n_cases": 13,
+  "metrics": {
+    "refusal_quality": 0.9230769230769231,
+    "citation_accuracy": 1.0,
+    "hallucination_rate": 0.0,
+    "faithfulness": NaN,
+    "answer_relevancy": 0.9012235952715797,
+    "context_precision": NaN,
+    "context_recall": 0.5625
+  },
+  "checks": [
+    {
+      "name": "refusal_quality",
+      "value": 0.9230769230769231,
+      "threshold": 0.9,
+      "passed": true
+    },
+    {
+      "name": "hallucination_rate",
+      "value": 0.0,
+      "threshold": 0.1,
+      "passed": true
+    },
+    {
+      "name": "faithfulness",
+      "value": NaN,
+      "threshold": 0.8,
+      "passed": false
+    },
+    {
+      "name": "answer_relevancy",
+      "value": 0.9012235952715797,
+      "threshold": 0.75,
+      "passed": true
+    },
+    {
+      "name": "context_precision",
+      "value": NaN,
+      "threshold": 0.7,
+      "passed": false
+    },
+    {
+      "name": "context_recall",
+      "value": 0.5625,
+      "threshold": 0.7,
+      "passed": false
+    }
+  ],
+  "records": [
+    {
+      "question": "¿Qué condiciones de estancia reconoce la Ley de Migración para los extranjeros?",
+      "category": "in_scope",
+      "should_refuse": false,
+      "did_refuse": false,
+      "answer": "Según el contexto, la Ley de Migración reconoce las siguientes condiciones de estancia para los extranjeros:\n\n* Estancia de residente temporal (Artículo 62)\n* Estancia de visitante con permiso para recibir una remuneración en el país (Artículo 63)\n* Estancia de residente permanente (Artículos 54 y 136)\n* Estancia de visitante por razones humanitarias, que incluye permiso para trabajar a cambio de una remuneración (Artículos 21 y 22)\n\n(Fuente: Ley_de_Migracion.pdf, Páginas 26, 37, 43, 21 y 22)",
+      "sources": [
+        "Ley_de_Migracion.pdf",
+        "Ley_de_Migracion.pdf",
+        "Ley_de_Migracion.pdf",
+        "Ley_de_Migracion.pdf",
+        "Ley_de_Migracion.pdf",
+        "Lin_tramites_y_procedimentos.pdf"
+      ]
+    },
+    {
+      "question": "¿Qué derechos tienen las personas migrantes independientemente de su situación migratoria?",
+      "category": "in_scope",
+      "should_refuse": false,
+      "did_refuse": false,
+      "answer": "Según la Ley de Migración (Fuente: Ley_de_Migracion.pdf, Página 7), los migrantes independientemente de su situación migratoria tendrán derecho a recibir de manera gratuita y sin restricción alguna cualquier tipo de atención médica urgente que resulte necesaria para preservar su vida. Además, tendrán derecho a la procuración e impartición de justicia, respetando en todo momento el derecho al debido proceso (Fuente: Ley_de_Migracion.pdf, Página 8).",
+      "sources": [
+        "Ley_de_Migracion.pdf",
+        "Ley_de_Migracion.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "Ley_de_Migracion.pdf",
+        "Ley_de_Migracion.pdf"
+      ]
+    },
+    {
+      "question": "¿Qué autoridad ejerce las funciones de control migratorio en México?",
+      "category": "in_scope",
+      "should_refuse": false,
+      "did_refuse": false,
+      "answer": "Según la documentación proporcionada, la autoridad que ejerce las funciones de control migratorio en México es el Instituto Nacional de Migración (INM), según se establece en el artículo 20 de la Ley de Migración (Fuente: Ley_de_Migracion.pdf, Página 10).",
+      "sources": [
+        "Ley_de_Migracion.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "Ley_de_Migracion.pdf",
+        "Ley_de_Migracion.pdf",
+        "lineamientos-visas-25-jul-2025.pdf",
+        "Ley_de_Migracion.pdf"
+      ]
+    },
+    {
+      "question": "¿Qué es la condición de estancia de residente temporal?",
+      "category": "in_scope",
+      "should_refuse": false,
+      "did_refuse": false,
+      "answer": "La condición de estancia de residente temporal se refiere a un tipo de permiso migratorio que otorga al extranjero el derecho a permanecer en México por un período determinado, con fines específicos como estudiar, trabajar o visitar a familiares. (Fuente: Lin_tramites_y_procedimentos.pdf, Página 30)",
+      "sources": [
+        "Lin_tramites_y_procedimentos.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "Ley_de_Migracion.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "Lin_tramites_y_procedimentos.pdf"
+      ]
+    },
+    {
+      "question": "¿Qué se requiere de manera general para tramitar una visa de visitante?",
+      "category": "in_scope",
+      "should_refuse": false,
+      "did_refuse": true,
+      "answer": "No encontré información suficiente en la documentación disponible para responder esta pregunta. Sin embargo, según el documento \"lineamientos-visas-25-jul-2025.pdf\" (Página 18), se requieren los siguientes documentos para tramitar una visa de visitante:\n\nI. Pasaporte o documento de identidad y viaje que sea válido conforme al derecho internacional y vigente, en original.\nII. Original del documento que acredite su legal estancia, si la persona extranjera no es nacional del país donde solicita la visa.\nIII. Presentar los documentos que acrediten alguno de los siguientes supuestos:\na. Solvencia económica: \n1. Original o documento electrónico con el número de cuenta bancaria y el saldo mínimo requerido.\n\nEs importante tener en cuenta que estos requisitos pueden variar dependiendo del tipo de visa solicitada y de las circunstancias específicas del caso.",
+      "sources": [
+        "Lin_tramites_y_procedimentos.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "lineamientos-visas-25-jul-2025.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "lineamientos-visas-25-jul-2025.pdf",
+        "Ley_de_Migracion.pdf"
+      ]
+    },
+    {
+      "question": "¿Qué trámites migratorios pueden realizarse ante el Instituto Nacional de Migración?",
+      "category": "in_scope",
+      "should_refuse": false,
+      "did_refuse": false,
+      "answer": "Según la documentación proporcionada, los siguientes trámites migratorios se pueden realizar ante el Instituto Nacional de Migración (INM):\n\n1. Trámite 9 Visa de visitante sin permiso para realizar actividades remuneradas, solicitada al Instituto por razones humanitarias (Fuente: Lin_tramites_y_procedimentos.pdf, Página 4)\n2. Expedición de documento migratorio por canje ante la oficina de atención a trámites del Instituto que corresponda al lugar de su domicilio (Fuente: Lin_tramites_y_procedimentos.pdf, Página 6)\n3. Reposición de documento migratorio (Fuente: Ley_de_Migracion.pdf, Página 6)\n\nEs importante tener en cuenta que estos trámites deben cumplir con los requisitos y procedimientos establecidos en la documentación proporcionada.",
+      "sources": [
+        "lineamientos-visas-25-jul-2025.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "lineamientos-visas-25-jul-2025.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "Ley_de_Migracion.pdf"
+      ]
+    },
+    {
+      "question": "¿Qué se requiere para obtener la nacionalidad mexicana por naturalización?",
+      "category": "in_scope",
+      "should_refuse": false,
+      "did_refuse": false,
+      "answer": "Según el Reg_LNac.pdf, Página 4 y Página 3, los requisitos para obtener la nacionalidad mexicana por naturalización son:\n\n* Ser mayor de edad y en uso de sus derechos civiles (Reg_LNac.pdf, Página 2)\n* Presentar original de la solicitud debidamente requisitada y firmada (Reg_LNac.pdf, Página 4)\n* Exhibir original del documento migratorio vigente que acredite la legal estancia y residencia en el país durante cinco años (Reg_LNac.pdf, Página 4)\n* Presentar copia certificada del acta de nacimiento o del certificado de nacionalidad mexicana o de la declaratoria de nacionalidad mexicana por nacimiento de su padre o de su madre (Reg_LNac.pdf, Página 3)\n* Acreditar que sabe hablar español, conoce la historia del país y está integrado a la cultura nacional, presentando y aprobar los exámenes correspondientes (Reg_LNac.pdf, Página 3)\n\nEs importante tener en cuenta que estos requisitos pueden variar dependiendo de las circunstancias específicas de cada caso.",
+      "sources": [
+        "Reg_LNac.pdf",
+        "Reg_LNac.pdf",
+        "Reg_LNac.pdf",
+        "Lin_tramites_y_procedimentos.pdf"
+      ]
+    },
+    {
+      "question": "¿Qué obligaciones tienen los extranjeros en materia migratoria?",
+      "category": "in_scope",
+      "should_refuse": false,
+      "did_refuse": false,
+      "answer": "Según la documentación proporcionada, los extranjeros con situación migratoria regular deben resguardar y custodiar la documentación que acredite su identidad y situación (Ley_de_Migracion.pdf, Página 8). Además, según el artículo 16 de la Ley de Migración, los migrantes deberán cumplir con las siguientes obligaciones:\n\nI. Cuando se trate de extranjeros con situación migratoria regular, resguardar y custodiar la documentación que acredite su identidad y situación (Ley_de_Migracion.pdf, Página 8).\n\nII. Proporcionar la información y los datos personales que les sean solicitados por la autoridad competente en el ámbito de sus atribuciones (lineamientos-visas-25-jul-2025.pdf, Página 40).\n\nIII. Presentar el pasaporte o documento de identidad y viaje válido conforme al derecho internacional y vigente con visa, y entregar a la autoridad migratoria la FMM debidamente llenada en los lugares destinados al tránsito internacional de personas por tierra, mar y aire (lineamientos-visas-25-jul-2025.pdf, Página 28).\n\nIV. Utilizar la visa exclusivamente durante el periodo de vigencia que inicia con la fecha de su expedición y por el número de entradas indicadas (lineamientos-visas-25-jul-2025.pdf, Página 15).",
+      "sources": [
+        "Ley_de_Migracion.pdf",
+        "lineamientos-visas-25-jul-2025.pdf",
+        "lineamientos-visas-25-jul-2025.pdf",
+        "lineamientos-visas-25-jul-2025.pdf",
+        "Lin_tramites_y_procedimentos.pdf"
+      ]
+    },
+    {
+      "question": "¿Qué es la tarjeta de residente?",
+      "category": "in_scope",
+      "should_refuse": false,
+      "did_refuse": false,
+      "answer": "La tarjeta de residencia permanente tendrá vigencia indefinida, salvo para personas extranjeras menores de tres años de edad que deberán renovar la tarjeta cada año hasta cumplir tres años (Fuente: Lin_tramites_y_procedimentos.pdf, Página 8).",
+      "sources": [
+        "Ley_de_Migracion.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "Lin_tramites_y_procedimentos.pdf"
+      ]
+    },
+    {
+      "question": "¿Cuál es la mejor receta para preparar tacos al pastor?",
+      "category": "out_of_scope",
+      "should_refuse": true,
+      "did_refuse": true,
+      "answer": "No encontré información suficiente en la documentación disponible para responder esta pregunta.",
+      "sources": [
+        "Ley_de_Migracion.pdf",
+        "Reg_LNac.pdf",
+        "lineamientos-visas-25-jul-2025.pdf",
+        "lineamientos-visas-25-jul-2025.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "Lin_tramites_y_procedimentos.pdf"
+      ]
+    },
+    {
+      "question": "¿Cómo presento mi declaración anual de impuestos ante el SAT?",
+      "category": "out_of_scope",
+      "should_refuse": true,
+      "did_refuse": true,
+      "answer": "No encontré información suficiente en la documentación disponible para responder esta pregunta.",
+      "sources": [
+        "Lin_tramites_y_procedimentos.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "lineamientos-visas-25-jul-2025.pdf",
+        "lineamientos-visas-25-jul-2025.pdf"
+      ]
+    },
+    {
+      "question": "¿Cuál es el horario de atención de las oficinas del INM en la ciudad de Tijuana?",
+      "category": "no_answer",
+      "should_refuse": true,
+      "did_refuse": true,
+      "answer": "No encontré información suficiente en la documentación disponible para responder esta pregunta.",
+      "sources": [
+        "Lin_tramites_y_procedimentos.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "Lin_tramites_y_procedimentos.pdf"
+      ]
+    },
+    {
+      "question": "¿Cuánto cuesta exactamente en pesos la tarjeta de residente permanente en el año 2026?",
+      "category": "no_answer",
+      "should_refuse": true,
+      "did_refuse": true,
+      "answer": "No encontré información suficiente en la documentación disponible para responder esta pregunta.",
+      "sources": [
+        "Lin_tramites_y_procedimentos.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "Lin_tramites_y_procedimentos.pdf",
+        "lineamientos-visas-25-jul-2025.pdf"
+      ]
+    }
+  ]
+}
