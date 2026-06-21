@@ -8,6 +8,44 @@ proyecto se adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [0.2.0] - 2026-06-20
+
+Segunda release de portfolio: sistema RAG completamente interactivo —
+observable, con UI funcional y logging estructurado de todas las interacciones.
+
+### Added — Fase 2: UI Streamlit + Observability Layer
+
+- `ObservabilityStore`: sink JSONL append-only, un registro por interacción;
+  `read_all()` para analítica offline (jq, pandas, DuckDB)
+- `RAGInteractionLogger`: construye `InteractionLog` desde artefactos del
+  pipeline; aplica redacción de PII antes de persistir cuando `redact_pii=True`
+- `redact_pii()`: patrones regex para CURP, RFC, email, teléfono (+52 compacto
+  y separado) y pasaporte mexicano
+- `RAGService` (`src/application/`): orquesta retriever → prompt → LLM → logger;
+  expone `ask(question)` limpio para la UI; tres flujos: `in_scope`, `refused`,
+  `error`; logger falla silenciosamente sin interrumpir la respuesta
+- `_extract_sources()`: deduplica `(doc, page)` preservando orden de score
+- `RAGResponse` + `SourceCitation`: tipos inmutables para el contrato UI↔service
+- `app/streamlit_app.py`: interfaz de consulta con badge de confianza
+  (in_scope / refused), panel de fuentes expandible con doc + página, manejo
+  diferenciado de errores, sidebar con disclaimer legal y `@st.cache_resource`
+  para no recargar el modelo de embeddings en cada interacción
+
+### Security
+
+- `question_hash` = SHA-256[:16] — trazabilidad sin almacenar texto crudo
+- Pregunta loggeada en forma redactada (no omitida): conserva utilidad
+  analítica sin exposición de PII
+- Logging de aplicación (`logging` module) estrictamente separado del logging
+  de interacciones (JSONL) — no se mezclan
+
+### Stats
+
+- 221 tests unitarios; 97.85% de cobertura
+- 3 PRs de feature integrados a develop (#12, #13, #14)
+
+---
+
 ## [0.1.0] - 2026-06-20
 
 Primera release de portfolio: MVP RAG local completo, sin APIs de pago ni
