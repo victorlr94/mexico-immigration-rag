@@ -119,20 +119,34 @@ El MVP RAG local está 100% implementado y mergeado a `main`.
 | `IngestionPipeline` | `src/genai_toolkit/pipeline/ingest.py` | ~10 tests |
 | `scripts/ingest.py` | CLI de ingesta end-to-end | tests de integración |
 
-**Total**: 163 tests; **97% de cobertura**; `fail_under = 50` (ADR-004).
+**Total al cierre de Fase 2**: 221 tests; **97.85% de cobertura**; `fail_under = 50` (ADR-004).
 
-### Detalles de implementación que importan en Fase 2
+### Componentes añadidos en Fase 2
+
+| Componente | Módulo | Tests |
+|---|---|---|
+| `ObservabilityStore` | `src/genai_toolkit/observability/store.py` | 8 tests |
+| `RAGInteractionLogger` + `redact_pii` | `src/genai_toolkit/observability/logger.py` | 19 tests |
+| `RAGService` | `src/application/rag_service.py` | 31 tests |
+| `RAGResponse` + `SourceCitation` | `src/application/types.py` | (via RAGService) |
+| `app/streamlit_app.py` | UI Streamlit | presentación pura |
+
+### Detalles de implementación que importan en Fase 3
 
 - **PdfLoader**: magic bytes `%PDF-`, límites de `Settings` (`max_file_size_mb`, `max_pages`), timeout 60 s via `ThreadPoolExecutor`.
-- **SlidingWindowChunker**: sanitiza `[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]` (prompt injection desde PDFs); IDs = SHA-256(`source:index`)[:16]; `section=None` (inferencia de encabezados en Fase futura).
-- **SentenceTransformerProvider**: prefijos `"passage: "` / `"query: "` obligatorios; `.tolist() + cast` para evitar `np.float32` en la API pública.
-- **ChromaVectorStore**: espacio coseno, upsert semántico; sentinel `page=None→-1`, `section=None→""` (ChromaDB no admite `None` en metadata); score = `min(1, max(0, 1-distance))`.
-- **SimpleRetriever**: `min_score=0.70`, `top_k=4` (desde Settings); `has_sufficient_context=True` si al menos 1 chunk supera el umbral.
-- **OllamaProvider**: `llama3.1:8b`; timeout 120 s; `temperature=0.1`; guarda explícito contra `response.response is None` (stubs de ollama lo declaran `str | None`).
-- **RagPromptManager**: templates en `src/domain/prompt_templates/`; delimitadores `<context>…</context>` en el template (no en `_build_context_block`) para que el contexto recuperado sea dato, no instrucción.
-- **IngestionPipeline**: si chunker devuelve `[]`, retorna `IngestResult` con `chunks_indexed=0` y NO llama al embedder (evita `ValueError` en `embed_documents([])`).
+- **SlidingWindowChunker**: sanitiza `[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]`; IDs = SHA-256(`source:index`)[:16]; `section=None`.
+- **SentenceTransformerProvider**: prefijos `"passage: "` / `"query: "` obligatorios; `.tolist() + cast` para tipos nativos.
+- **ChromaVectorStore**: coseno, upsert; sentinel `page=None→-1`, `section=None→""`.
+- **SimpleRetriever**: `min_score=0.70`, `top_k=4` (Settings); `has_sufficient_context` en un solo lugar.
+- **OllamaProvider**: `llama3.1:8b`; timeout 120 s; temperatura 0.1; guarda explícito contra `response.response is None`.
+- **RagPromptManager**: delimitadores `<context>…</context>` en el template, no en `_build_context_block`.
+- **IngestionPipeline**: si `chunks == []`, retorna `IngestResult(chunks_indexed=0)` sin llamar al embedder.
+- **ObservabilityStore**: JSONL append-only; `_to_dict` usa `asdict()` (convierte `SourceReference` a dict automáticamente).
+- **RAGInteractionLogger**: `redact_pii=True` → aplica regex antes de loggear; nunca omite la pregunta completa.
+- **RAGService**: `_log()` captura excepciones del logger con `except Exception` (logger nunca interrumpe la respuesta); `_extract_sources()` deduplica por `(doc, page)` preservando orden.
+- **Streamlit**: `@st.cache_resource` en `_build_service()` — el modelo de embeddings se carga una vez por sesión de servidor.
 
-### Bugs reales atrapados en Fase 0–1
+### Bugs reales atrapados en Fase 0–2
 
 1. Aplanado automático de YAML no coincidía con nombres de campo de `Settings`.
 2. Jerarquía de precedencia de Pydantic Settings invertida por defecto.
@@ -140,6 +154,7 @@ El MVP RAG local está 100% implementado y mergeado a `main`.
 4. CI solo instalaba `.[dev]`, nunca `requirements.txt` → pypdf "no encontrado".
 5. Black sin pin → versión CI distinta a local → CI rojo; fix: `black==26.5.1`.
 6. `list(numpy_array)` produce `np.float32`, no `float` Python; fix: `.tolist() + cast`.
+7. Teléfono `+52NNNNNNNNNN` compacto no matcheaba `\b\d{10}\b` (no hay word boundary entre dígitos adyacentes); fix: patrón separado `\+52\d{10}(?!\d)` antes del patrón genérico de 10 dígitos.
 
 ### Configuración de calidad activa
 
@@ -158,8 +173,8 @@ desde PowerShell usar `-F archivo` (no heredoc `@'...'@` — falla con git en PS
 |---|---|---|
 | 0 | Setup, arquitectura, skills, interfaces del toolkit, Configuration Layer, CI/CD básico | **Cerrada** (incluida en v0.1.0) |
 | 1 | MVP local: PdfLoader, Chunker, Embeddings, ChromaDB, Retriever, OllamaProvider, PromptManager, IngestionPipeline + CLI | **Cerrada** → `v0.1.0` |
-| 2 | UI Streamlit + Observability Layer (logging estructurado JSONL, redacción PII) | **Siguiente** |
-| 3 | Suite de testing completa, pre-commit, sube `fail_under` de 50 → 70% | Pendiente |
+| 2 | UI Streamlit + Observability Layer (logging estructurado JSONL, redacción PII) | **Cerrada** → `v0.2.0` |
+| 3 | Suite de testing completa, pre-commit, sube `fail_under` de 50 → 70% | **Siguiente** |
 | 4 | Evaluación RAG (RAGAS + evaluadores propios), mitigación SSRF de `ragas` | Pendiente |
 | 5 | Seguridad: guards in/out, suite de security tests, OWASP checklist | Pendiente |
 | 6 | CI/CD avanzado | Pendiente |
@@ -167,36 +182,43 @@ desde PowerShell usar `-F archivo` (no heredoc `@'...'@` — falla con git en PS
 | 8 | API FastAPI | Pendiente |
 | 9 | Prep cloud | Pendiente |
 
-## 7. La pieza inmediata a implementar: UI Streamlit + Observability (Fase 2)
+## 7. La pieza inmediata a implementar: Testing Suite (Fase 3)
 
-### Fase 2 — objetivos principales
+### Fase 3 — objetivos principales
 
-1. **`app/streamlit_app.py`** — interfaz de usuario:
-   - Entrada de texto libre (pregunta del usuario), `max_input_chars=2000` (ya en Settings).
-   - Panel de respuesta con citas de fuente/página y badge de confianza (basado en `has_sufficient_context` y scores del retriever).
-   - Refusal UI cuando `has_sufficient_context=False` ("No encontré suficiente contexto para responder con certeza").
-   - Disclaimer legal visible (ya existe en `src/domain/prompt_templates/__init__.py`).
+1. **Pre-commit hooks**: Black, Ruff, mypy (strict en `genai_toolkit.*`) — impedir que código
+   con lint o type errors entre al repo sin CI. Configurar `.pre-commit-config.yaml`.
 
-2. **Observability Layer** (`src/genai_toolkit/observability/`):
-   - Logging estructurado a JSONL (schema ya definido en `docs/engineering_skills/06_observability.md`).
-   - `redact_pii=True` activado en Settings por defecto.
-   - Qué loggear: timestamp, query hash (no plaintext), template_id, chunk_ids, scores, latencias por etapa, modelo usado, `has_sufficient_context`.
+2. **Tests de integración** (`tests/integration/`):
+   - `test_ingestion_e2e.py`: PDF real (pequeño, sin datos sensibles) → loader → chunker → embedder → store → count.
+   - `test_retrieval_e2e.py`: query real → retriever sobre ChromaDB en directorio temporal.
+   - Estos tests se marcan con `@pytest.mark.integration` y se excluyen del run de CI rápido.
 
-3. Al cerrar Fase 2: ningún cambio en `fail_under` (permanece en 50).
+3. **Tests de seguridad** (`tests/security/`): siguiendo la skill `04_security.md`:
+   - Prompt injection desde PDF (caracteres de control → chunker los sanitiza).
+   - Input demasiado largo (RAGService rechaza antes de retrieval).
+   - Archivo que no es PDF (magic bytes incorrectos).
+
+4. **Subir `fail_under` de 50 → 70%** (ADR-004): requiere cubrir los módulos con menos
+   cobertura (`chroma.py` líneas 82-83, 102-103, 129-130; `sliding_window_chunker.py` etc.).
+   Actualizar `pyproject.toml` y este ADR al cerrar la fase.
+
+5. Al cerrar Fase 3: PR `develop` → `main`, tag `v0.3.0`, GitHub Release, CHANGELOG.
 
 ### Rama sugerida
 
 ```bash
 git checkout develop && git pull
-git checkout -b feature/streamlit-ui
+git checkout -b feature/testing-suite
 ```
 
 ## 8. Cómo seguir trabajando (instrucciones de proceso)
 
-- Rama nueva desde `develop` actualizado: `git checkout -b feature/streamlit-ui`.
+- Rama nueva desde `develop` actualizado: `git checkout -b feature/testing-suite`.
 - Implementar → `black .` → `ruff check . --fix` → `mypy src/` → `pytest` → commit con
   Conventional Commits → PR → merge a `develop`.
-- Al cerrar Fase 2: PR `develop` → `main`, tag `v0.2.0`, GitHub Release, actualizar CHANGELOG.md.
+- Al cerrar Fase 3: PR `develop` → `main`, tag `v0.3.0`, GitHub Release, actualizar CHANGELOG.md
+  y subir `fail_under` a 70 en `pyproject.toml`.
 - Si surge una decisión no obvia, documentarla como ADR-006 siguiendo el
   formato de los 5 existentes en `docs/architecture/adr/`.
 
