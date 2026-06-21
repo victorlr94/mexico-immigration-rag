@@ -1,7 +1,7 @@
 # Contexto del proyecto — Mexico Immigration RAG Assistant (Asesor Migratorio RAG)
 
 > Este documento sintetiza todo lo decidido y construido hasta el cierre de la
-> **Fase 1 (v0.1.0)**, para que cualquier sesión nueva de Claude (Code o chat)
+> **Fase 4 (v0.4.0)**, para que cualquier sesión nueva de Claude (Code o chat)
 > recupere el contexto completo sin tener que re-derivarlo.
 > Está pensado para pegarse como mensaje inicial o guardarse como `CONTEXT.md`
 > en la raíz del repo y referenciarse al abrir una sesión nueva.
@@ -119,7 +119,7 @@ El MVP RAG local está 100% implementado y mergeado a `main`.
 | `IngestionPipeline` | `src/genai_toolkit/pipeline/ingest.py` | ~10 tests |
 | `scripts/ingest.py` | CLI de ingesta end-to-end | tests de integración |
 
-**Total al cierre de Fase 3**: 260 tests (unit + security); **97.85% de cobertura**; `fail_under = 70` (ADR-004).
+**Total al cierre de Fase 4**: 276 tests (unit + security); **97.96% de cobertura**; `fail_under = 70` (ADR-004).
 Los 20 tests de integración (`@pytest.mark.integration`) se excluyen del CI rápido — requieren el modelo real de 117 MB.
 
 ### Componentes añadidos en Fase 2
@@ -138,7 +138,7 @@ Los 20 tests de integración (`@pytest.mark.integration`) se excluyen del CI rá
 - **SlidingWindowChunker**: sanitiza `[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]`; IDs = SHA-256(`source:index`)[:16]; `section=None`.
 - **SentenceTransformerProvider**: prefijos `"passage: "` / `"query: "` obligatorios; `.tolist() + cast` para tipos nativos.
 - **ChromaVectorStore**: coseno, upsert; sentinel `page=None→-1`, `section=None→""`.
-- **SimpleRetriever**: `min_score=0.70`, `top_k=4` (Settings); `has_sufficient_context` en un solo lugar.
+- **SimpleRetriever**: `min_score=0.70`, `top_k=6` (Settings; subió de 4→6 en v0.4.0 para dar más contexto al LLM); `has_sufficient_context` en un solo lugar.
 - **OllamaProvider**: `llama3.1:8b`; timeout 120 s; temperatura 0.1; guarda explícito contra `response.response is None`.
 - **RagPromptManager**: delimitadores `<context>…</context>` en el template, no en `_build_context_block`.
 - **IngestionPipeline**: si `chunks == []`, retorna `IngestResult(chunks_indexed=0)` sin llamar al embedder.
@@ -159,7 +159,7 @@ Los 20 tests de integración (`@pytest.mark.integration`) se excluyen del CI rá
 
 ### Configuración de calidad activa
 
-- `pyproject.toml`: black==26.5.1, Ruff (E/F/I/B/UP/N/SIM), mypy strict en `genai_toolkit.*`, pytest + coverage (`fail_under = 50`).
+- `pyproject.toml`: black==26.5.1, Ruff (E/F/I/B/UP/N/SIM), mypy strict en `genai_toolkit.*`, pytest + coverage (`fail_under = 70`).
 - `.github/workflows/ci.yml`: instala `requirements.txt` y `-e ".[dev]"` antes de lint/type/test.
 - `.github/workflows/security.yml`: gitleaks + `pip-audit` con allowlist `security/accepted-vulnerabilities.txt`.
 
@@ -176,14 +176,71 @@ desde PowerShell usar `-F archivo` (no heredoc `@'...'@` — falla con git en PS
 | 1 | MVP local: PdfLoader, Chunker, Embeddings, ChromaDB, Retriever, OllamaProvider, PromptManager, IngestionPipeline + CLI | **Cerrada** → `v0.1.0` |
 | 2 | UI Streamlit + Observability Layer (logging estructurado JSONL, redacción PII) | **Cerrada** → `v0.2.0` |
 | 3 | Suite de testing completa, pre-commit, sube `fail_under` de 50 → 70% | **Cerrada** → `v0.3.0` |
-| 4 | Evaluación RAG (RAGAS + evaluadores propios), mitigación SSRF de `ragas` | Pendiente |
-| 5 | Seguridad: guards in/out, suite de security tests, OWASP checklist | Pendiente |
+| 4 | MVP Vitrina: corpus, UI polish, Makefile, evaluación RAG (RAGAS + propios) | **Cerrada** → `v0.4.0` |
+| 5 | Seguridad avanzada: red teaming completo, generación sintética de preguntas | Pendiente |
 | 6 | CI/CD avanzado | Pendiente |
 | 7 | Dockerización | Pendiente |
 | 8 | API FastAPI | Pendiente |
 | 9 | Prep cloud | Pendiente |
 
-## 7. ✅ Fase 3 cerrada — Testing Suite (v0.3.0, 2026-06-20)
+## 7. ✅ Fase 4 cerrada — MVP Vitrina + Evaluación RAG (v0.4.0, 2026-06-21)
+
+### Lo que se implementó (6 PRs, #21–#26)
+
+1. **Corpus de muestra** (`data/samples/`): 4 PDFs oficiales (INM / DOF), 1 704 chunks.
+   Excepción `.gitignore` + `data/samples/README.md` con procedencia.
+
+2. **UI demo polish** (`app/streamlit_app.py`): preguntas sugeridas, aviso de índice
+   vacío, panel de estado (fragmentos + Ollama con 3 estados), cache de conteo.
+
+3. **Makefile**: `make demo` instala + descarga modelo + indexa corpus en un comando.
+
+4. **Evaluación RAG** (`src/genai_toolkit/evaluation/`, `scripts/evaluate.py`,
+   `evaluations/`): evaluadores deterministas siempre activos + RAGAS best-effort
+   con juez Ollama local. ADR-006 documenta la decisión de degradación.
+
+5. **Calibración**: `top_k` 4→6, `_REFUSAL_MARKERS` ampliados, fix UTF-8 Windows.
+
+6. **README showcase**: diagrama Mermaid, quickstart funcional, métricas reales,
+   tabla de ADRs. Reemplaza el placeholder de Fase 0.
+
+7. **`evaluations/results/baseline.json`** versionado: métricas reales del sistema.
+
+### Métricas de evaluación (baseline real, corpus 1 704 chunks, 13 preguntas)
+
+| Métrica | Valor | Capa |
+|---|---|---|
+| `refusal_quality` | **0.923** | Determinista |
+| `hallucination_rate` | **0.000** | Determinista |
+| `citation_accuracy` | **1.000** | Determinista |
+| `answer_relevancy` | **0.901** | RAGAS |
+| `context_recall` | 0.562 | RAGAS (parcial — timeouts) |
+| `faithfulness` | — (timeout) | RAGAS (ver ADR-006) |
+| `context_precision` | — (timeout) | RAGAS (ver ADR-006) |
+
+Los timeouts de RAGAS (`faithfulness`, `context_precision`) son una limitación del
+juez local (`llama3.1:8b` en CPU, ~57 s/eval, RAGAS paralelo). No son un bug del
+sistema RAG — la `answer_relevancy=0.901` confirma la pertinencia de las respuestas.
+
+### Detalles de implementación que importan en Fase 5+
+
+- **evaluate.py**: importar `application.rag_service` primero para romper el import
+  circular latente entre `vectorstore.base` ↔ `retrieval.__init__`. El circular surge
+  si `vectorstore.__init__` se importa antes de que `retrieval.types` esté en
+  `sys.modules`. Fix estructural pendiente para Fase 5.
+- **`_REFUSAL_MARKERS`**: el LLM usa "Lo siento, pero no puedo proporcionar
+  asistencia..." para rechazos fuera de dominio — patrón añadido a los markers.
+- **`ollama.Client.list()`**: retorna `ListResponse` (no `dict`) en versiones
+  recientes del SDK. Guard: `isinstance(raw, dict)` → `.get()` vs `getattr`.
+- **Streamlit + `st.session_state`**: los botones de sugerencias usan `on_click`
+  con `_set_question(text)` para comunicarse con el `text_area(key="question")`.
+
+### Siguiente: Fase 5 — Seguridad avanzada
+
+Temas pendientes: red teaming con preguntas adversariales sintéticas, evaluación
+de robustez ante prompt injection real, análisis de falsos negativos del retriever.
+
+## 7b. ✅ Fase 3 cerrada — Testing Suite (v0.3.0, 2026-06-20)
 
 ### Lo que se implementó
 

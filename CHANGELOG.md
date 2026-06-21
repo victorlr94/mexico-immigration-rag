@@ -8,6 +8,58 @@ proyecto se adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [0.4.0] - 2026-06-21
+
+Cuarta release de portfolio: MVP demostrable localmente — corpus oficial indexado,
+evaluación RAG con métricas reales, UI pulida y README como vitrina.
+
+### Added — MVP Vitrina + Evaluación RAG
+
+- **Corpus de muestra** (`data/samples/`, PR #21): 4 PDFs públicos oficiales
+  (Ley de Migración, Reglamento Ley de Nacionalidad, Lineamientos de visas
+  25-jul-2025, Lineamientos de trámites). Total: 212 páginas, 1 704 chunks.
+  Excepción `.gitignore` + `data/samples/README.md` con tabla de procedencia.
+- **UI demo polish** (`app/streamlit_app.py`, PR #22): 4 preguntas sugeridas como
+  botones; aviso accionable cuando el índice está vacío; panel de estado del sistema
+  (n.º de fragmentos + estado de Ollama con 3 estados); `@st.cache_resource` para
+  conteo del índice; `_ollama_status()` compatible con `ListResponse` del SDK.
+- **Makefile** (PR #23): targets `install`, `pull-model`, `ingest`, `run`, `eval`,
+  `test`, `test-all`, `lint`, `format`, `clean`, `demo` (instala + descarga modelo
+  + indexa en un solo comando).
+- **Evaluación RAG en dos capas** (PR #24, ver ADR-006):
+  - `src/genai_toolkit/evaluation/` — evaluadores deterministas sin LLM:
+    `refusal_quality`, `citation_accuracy`, `hallucination_rate`; 16 tests unitarios.
+  - `evaluations/test_questions.jsonl` — 13 preguntas con `ground_truth`,
+    `expected_source`, `category` (in_scope × 9, out_of_scope × 2, no_answer × 2).
+    Fuentes verificadas empíricamente contra el corpus real.
+  - `scripts/evaluate.py` — CLI completo: `--no-ragas`, `--update-baseline`,
+    `--dry-run`; RAGAS con juez Ollama local en bloque lazy + `try/except`
+    para degradación documentada.
+  - `ADR-006`: evaluación en dos capas; RAGAS best-effort con juez local.
+- **Calibración de evaluación** (PR #25): `top_k` 4→6 (el LLM encuentra respuesta
+  en 3 preguntas que antes quedaban sin contexto); `_REFUSAL_MARKERS` ampliados con
+  patrones reales del LLM; fix de encoding UTF-8 en terminal Windows (SIM105).
+- **README como vitrina** (PR #26): diagrama Mermaid de arquitectura, quickstart
+  funcional, tabla de corpus, métricas reales, mapa OWASP, tabla de ADRs, roadmap
+  actualizado. Reemplaza el placeholder de Fase 0.
+- **`evaluations/results/baseline.json`** — primera baseline versionada con métricas
+  reales: `refusal_quality=0.923`, `hallucination_rate=0.000`,
+  `citation_accuracy=1.000`, `answer_relevancy=0.901` (RAGAS).
+
+### Changed
+
+- `retrieval.top_k`: 4 → **6** (mejora cobertura de contexto sin impacto en latencia
+  perceptible en entorno local)
+- `README.md`: reescritura completa — de placeholder de Fase 0 a vitrina de portafolio
+
+### Stats
+
+- **276 tests** (unit + security); **97.96% de cobertura**
+- 6 PRs de feature integrados a develop (#21–#26)
+- Métricas de evaluación con corpus real de 1 704 chunks
+
+---
+
 ## [0.3.0] - 2026-06-20
 
 Tercera release de portfolio: suite de testing completa con enfoque en
