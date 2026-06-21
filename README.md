@@ -31,7 +31,7 @@ la capa fina de dominio adapta el sistema a banca, telco, legal o compliance.
 > legal. Para situaciones específicas consulta a un abogado migratorio certificado
 > o al INM.*
 
-<!-- Reemplaza con captura real de la UI: docs/assets/demo_screenshot.png -->
+![Demo del Asesor Migratorio RAG](docs/assets/demo.gif)
 
 ---
 
