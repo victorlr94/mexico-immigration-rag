@@ -31,7 +31,7 @@ def test_carga_valores_reales_desde_default_yaml():
     assert settings.chroma_collection == "immigration_docs"
     assert settings.chunk_size == 500
     assert settings.chunk_overlap == 80
-    assert settings.retrieval_top_k == 4
+    assert settings.retrieval_top_k == 6
     assert settings.retrieval_min_score == 0.70
     assert settings.eval_faithfulness_min == 0.80
     assert settings.eval_refusal_quality_min == 0.90

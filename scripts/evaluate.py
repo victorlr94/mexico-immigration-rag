@@ -25,6 +25,7 @@ configurado para la evaluación completa.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import logging
 import sys
@@ -66,6 +67,10 @@ _REFUSAL_MARKERS = (
     "no encontre informacion",
     "no cuento con información",
     "no dispongo de información",
+    "no puedo proporcionar asistencia",
+    "lo siento, pero no puedo",
+    "no tengo información sobre",
+    "fuera del alcance",
 )
 
 
@@ -240,6 +245,11 @@ def _write_results(
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Windows consoles default to cp1252; force UTF-8 so the report symbols render.
+    for _stream in (sys.stdout, sys.stderr):
+        with contextlib.suppress(AttributeError):
+            _stream.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+
     parser = argparse.ArgumentParser(description="Evaluación RAG del asistente.")
     parser.add_argument("--dataset", type=Path, default=DATASET_PATH)
     parser.add_argument(
