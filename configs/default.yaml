@@ -20,7 +20,7 @@ chunking:
   chunk_overlap: 80
 
 retrieval:
-  top_k: 4
+  top_k: 6
   min_score: 0.70           # por debajo de esto -> refusal controlado
 
 security:

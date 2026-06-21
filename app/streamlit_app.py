@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 
 import streamlit as st
+from ollama import Client
 
 from application.rag_service import RAGService
 from application.types import RAGResponse, SourceCitation
@@ -34,6 +35,15 @@ logging.basicConfig(
     format="%(levelname)s %(name)s — %(message)s",
 )
 
+# Preguntas de muestra ancladas al corpus por defecto (data/samples/): Ley de
+# Migración, lineamientos de visas/trámites y Reglamento de la Ley de Nacionalidad.
+SUGGESTED_QUESTIONS: list[str] = [
+    "¿Cuáles son las condiciones de estancia que reconoce la Ley de Migración?",
+    "¿Qué requisitos se piden para tramitar una visa de visitante?",
+    "¿Qué derechos tienen las personas migrantes sin importar su situación migratoria?",
+    "¿Qué autoridades pueden ejercer funciones de control migratorio?",
+]
+
 
 @st.cache_resource(show_spinner="Cargando modelos de embeddings…")
 def _build_service() -> RAGService:
@@ -52,6 +62,75 @@ def _build_service() -> RAGService:
         interaction_logger=interaction_logger,
         settings=settings,
     )
+
+
+@st.cache_resource(show_spinner=False)
+def _vector_store() -> ChromaVectorStore:
+    """Store ligero (sin modelo de embeddings) para consultar el conteo del índice."""
+    return ChromaVectorStore(Settings())
+
+
+def _index_count() -> int:
+    """Número de chunks indexados; 0 si el store no existe o falla."""
+    try:
+        return _vector_store().count()
+    except Exception:  # noqa: BLE001 — la UI nunca debe romperse por el conteo
+        return 0
+
+
+@st.cache_data(ttl=15, show_spinner=False)
+def _ollama_status() -> tuple[str, list[str]]:
+    """Pre-flight de Ollama. Devuelve (estado, modelos).
+
+    estado ∈ {"ok", "sin_modelo", "caido"}:
+      - ok: servidor activo y el modelo configurado está descargado
+      - sin_modelo: servidor activo pero falta `ollama pull <modelo>`
+      - caido: el servidor no responde
+    """
+    settings = Settings()
+    try:
+        client = Client(host=settings.ollama_base_url, timeout=4.0)
+        raw = client.list()
+    except Exception:  # noqa: BLE001 — cualquier fallo = servidor no disponible
+        return "caido", []
+
+    if isinstance(raw, dict):
+        models = raw.get("models", [])
+    else:
+        models = getattr(raw, "models", [])
+    names: list[str] = []
+    for m in models:
+        name = m.get("name") if isinstance(m, dict) else getattr(m, "model", None)
+        if name:
+            names.append(str(name))
+
+    target = settings.llm_model
+    present = any(n == target or n.startswith(f"{target}") for n in names)
+    return ("ok" if present else "sin_modelo", names)
+
+
+def _render_system_status(settings: Settings, index_count: int) -> None:
+    """Panel de estado del sistema en el sidebar (índice + Ollama)."""
+    st.subheader("Estado del sistema")
+
+    if index_count > 0:
+        st.caption(f"📚 Índice: **{index_count:,} fragmentos** indexados")
+    else:
+        st.caption("📚 Índice: **vacío** — ejecuta la ingesta")
+
+    estado, _ = _ollama_status()
+    if estado == "ok":
+        st.caption(f"🟢 Ollama activo · modelo `{settings.llm_model}`")
+    elif estado == "sin_modelo":
+        st.caption(
+            f"🟡 Ollama activo, pero falta el modelo. "
+            f"Ejecuta:\n```\nollama pull {settings.llm_model}\n```"
+        )
+    else:
+        st.caption(
+            "🔴 Ollama no responde. Inícialo con `ollama serve` "
+            "y descarga el modelo."
+        )
 
 
 def _render_sources(sources: list[SourceCitation]) -> None:
@@ -93,6 +172,22 @@ def _render_error(exc: Exception) -> None:
         st.error(f"Error al procesar la consulta: {exc}")
 
 
+def _render_empty_index_notice() -> None:
+    """Aviso accionable cuando no hay nada indexado (primer arranque tras clonar)."""
+    st.info(
+        "**Aún no hay documentos indexados.**\n\n"
+        "Para ver el asistente en acción, indexa el corpus de muestra incluido "
+        "en el repositorio:\n\n"
+        "```\npython scripts/ingest.py data/samples/*.pdf\n```\n\n"
+        "Luego recarga esta página."
+    )
+
+
+def _set_question(text: str) -> None:
+    """Callback de los botones de pregunta sugerida (corre antes del rerun)."""
+    st.session_state.question = text
+
+
 def main() -> None:
     settings = Settings()
 
@@ -102,10 +197,15 @@ def main() -> None:
         layout="centered",
     )
 
+    st.session_state.setdefault("question", "")
+    index_count = _index_count()
+
     # ------------------------------------------------------------------ Sidebar
     with st.sidebar:
         st.title("Aviso legal")
         st.warning(DISCLAIMER_ES)
+        st.divider()
+        _render_system_status(settings, index_count)
         st.divider()
         st.caption(f"**Modelo LLM:** {settings.llm_model}")
         st.caption(f"**Embeddings:** {settings.embedding_model}")
@@ -122,10 +222,28 @@ def main() -> None:
         "con base en documentación oficial indexada localmente."
     )
 
+    # --------------------------------------------------------------- Sin índice
+    if index_count == 0:
+        _render_empty_index_notice()
+        return
+
+    # ------------------------------------------------------- Preguntas sugeridas
+    st.markdown("**Prueba con una pregunta de ejemplo:**")
+    cols = st.columns(2)
+    for i, suggestion in enumerate(SUGGESTED_QUESTIONS):
+        cols[i % 2].button(
+            suggestion,
+            key=f"suggestion_{i}",
+            on_click=_set_question,
+            args=(suggestion,),
+            use_container_width=True,
+        )
+
     # ------------------------------------------------------------------ Form
     with st.form("question_form", clear_on_submit=False):
         question = st.text_area(
             "Escribe tu pregunta:",
+            key="question",
             max_chars=settings.max_input_chars,
             height=110,
             placeholder=(
@@ -152,7 +270,7 @@ def main() -> None:
             except ValueError as exc:
                 st.error(f"Pregunta no válida: {exc}")
                 return
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — se traduce a mensaje de UI
                 _render_error(exc)
                 return
 
