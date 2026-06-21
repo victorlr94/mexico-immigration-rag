@@ -25,6 +25,7 @@ configurado para la evaluación completa.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import logging
 import sys
@@ -246,10 +247,8 @@ def _write_results(
 def main(argv: list[str] | None = None) -> int:
     # Windows consoles default to cp1252; force UTF-8 so the report symbols render.
     for _stream in (sys.stdout, sys.stderr):
-        try:
+        with contextlib.suppress(AttributeError):
             _stream.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
-        except AttributeError:
-            pass
 
     parser = argparse.ArgumentParser(description="Evaluación RAG del asistente.")
     parser.add_argument("--dataset", type=Path, default=DATASET_PATH)
