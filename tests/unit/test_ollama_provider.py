@@ -34,11 +34,13 @@ def _make_settings(
     model: str = "llama3.1:8b",
     base_url: str = "http://localhost:11434",
     temperature: float = 0.1,
+    seed: int | None = None,
 ) -> Settings:
     return Settings(
         llm_model=model,
         ollama_base_url=base_url,
         llm_temperature=temperature,
+        llm_seed=seed,
     )
 
 
@@ -122,6 +124,18 @@ class TestGenerate:
         options = provider._client.generate.call_args[1]["options"]
         assert options["temperature"] == pytest.approx(0.1)
 
+    def test_default_temperature_comes_from_settings(
+        self, mock_client: MagicMock
+    ) -> None:
+        """Sin temperature explícita, usa la configurada en Settings (no un
+        0.1 hardcodeado). Bloquea el bug de que el pipeline ignorara la
+        temperatura configurada."""
+        with patch(_CLIENT_PATH, return_value=mock_client):
+            p = OllamaProvider(_make_settings(temperature=0.7))
+        p.generate("prompt")
+        options = p._client.generate.call_args[1]["options"]
+        assert options["temperature"] == pytest.approx(0.7)
+
     def test_max_tokens_maps_to_num_predict(self, provider: OllamaProvider) -> None:
         provider.generate("prompt", max_tokens=256)
         options = provider._client.generate.call_args[1]["options"]
@@ -133,6 +147,36 @@ class TestGenerate:
         provider.generate("prompt", max_tokens=None)
         options = provider._client.generate.call_args[1]["options"]
         assert "num_predict" not in options
+
+
+# ---------------------------------------------------------------------------
+# generate — seed (reproducibilidad)
+# ---------------------------------------------------------------------------
+
+
+class TestSeed:
+    def test_seed_absent_when_unset(self, provider: OllamaProvider) -> None:
+        """Sin seed configurada ni explícita, options no incluye 'seed'
+        (comportamiento no determinista por defecto de Ollama)."""
+        provider.generate("prompt")
+        options = provider._client.generate.call_args[1]["options"]
+        assert "seed" not in options
+
+    def test_seed_from_settings_included_in_options(
+        self, mock_client: MagicMock
+    ) -> None:
+        with patch(_CLIENT_PATH, return_value=mock_client):
+            p = OllamaProvider(_make_settings(seed=42))
+        p.generate("prompt")
+        options = p._client.generate.call_args[1]["options"]
+        assert options["seed"] == 42
+
+    def test_explicit_seed_overrides_settings(self, mock_client: MagicMock) -> None:
+        with patch(_CLIENT_PATH, return_value=mock_client):
+            p = OllamaProvider(_make_settings(seed=42))
+        p.generate("prompt", seed=123)
+        options = p._client.generate.call_args[1]["options"]
+        assert options["seed"] == 123
 
 
 # ---------------------------------------------------------------------------

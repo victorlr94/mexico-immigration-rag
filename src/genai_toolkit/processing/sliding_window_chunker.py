@@ -14,22 +14,13 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import re
 
 from genai_toolkit.config.settings import Settings
 from genai_toolkit.ingestion.types import LoadedDocument
+from genai_toolkit.processing._sanitize import sanitize_text as _sanitize_text
 from genai_toolkit.retrieval.types import Chunk, ChunkMetadata
 
 logger = logging.getLogger(__name__)
-
-# Caracteres de control ASCII excepto \t (0x09) y \n (0x0a).
-# Eliminarlos antes de indexar mitiga secuencias sospechosas embebidas en PDFs.
-_CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
-
-
-def _sanitize_text(text: str) -> str:
-    """Elimina caracteres de control del texto extraído de un PDF."""
-    return _CONTROL_RE.sub("", text)
 
 
 def _split_into_windows(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:

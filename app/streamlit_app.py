@@ -142,8 +142,23 @@ def _render_sources(sources: list[SourceCitation]) -> None:
             st.markdown(f"- **{source.document}**{page_info}")
 
 
+# Marcadores del rechazo emitido por el LLM pese a haber recuperado contexto
+# (el retriever encontró fragmentos, pero ninguno respondía la pregunta).
+_LLM_REFUSAL_MARKERS = (
+    "no encontré información",
+    "no encontre informacion",
+    "no puedo proporcionar asistencia",
+    "lo siento, pero no puedo",
+)
+
+
+def _looks_like_refusal(answer: str) -> bool:
+    low = answer.lower()
+    return any(marker in low for marker in _LLM_REFUSAL_MARKERS)
+
+
 def _render_response(response: RAGResponse) -> None:
-    if response.has_sufficient_context:
+    if response.has_sufficient_context and not _looks_like_refusal(response.answer):
         st.success(
             "Alta confianza — respuesta basada en documentación oficial indexada."
         )

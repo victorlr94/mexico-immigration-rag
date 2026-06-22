@@ -12,8 +12,15 @@ from genai_toolkit.config.settings import Settings
 
 def test_defaults_sin_yaml_ni_env(tmp_path, monkeypatch):
     """Sin YAML disponible, Settings debe construirse con los defaults
-    declarados en la clase (no debe fallar ni quedar en None)."""
-    monkeypatch.chdir(tmp_path)  # cwd sin configs/default.yaml ni .env
+    declarados en la clase (no debe fallar ni quedar en None).
+
+    La ruta del YAML es absoluta (relativa al paquete, no a cwd), por lo que
+    para aislar de verdad los defaults de clase se apunta a un archivo
+    inexistente."""
+    monkeypatch.setattr(
+        "genai_toolkit.config.settings._DEFAULT_YAML_PATH",
+        tmp_path / "no_existe.yaml",
+    )
     settings = Settings(_env_file=None)  # type: ignore[call-arg]
     assert settings.llm_model == "llama3.1:8b"
     assert settings.chunk_size == 500

@@ -16,8 +16,8 @@ vector_store:
   collection: immigration_docs
 
 chunking:
-  chunk_size: 500
-  chunk_overlap: 80
+  chunk_size: 500            # sliding-window (ADR-007 midió recursivo y lo descartó)
+  chunk_overlap: 80          # solape para no cortar frases entre fragmentos
 
 retrieval:
   top_k: 6
