@@ -6,6 +6,13 @@ proyecto se adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+---
+
+## [0.4.1] - 2026-06-22
+
+Release de mantenimiento: corrección de bugs, mejoras de reproducibilidad de la
+evaluación, implementación alternativa de chunking y vitrina visual del proyecto.
+
 ### Fixed
 
 - **Bug latente: la temperatura configurada no llegaba al LLM.** `RAGService`
@@ -31,6 +38,18 @@ proyecto se adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - **UX (`app/streamlit_app.py`)**: el banner deja de mostrar "Alta confianza"
   cuando el LLM emite un rechazo pese a haber contexto; detecta el texto de
   rechazo y muestra un aviso neutro.
+
+### Docs
+
+- **GIF de demostración** (`docs/assets/demo.gif`) embebido en el README — muestra
+  el flujo real de pregunta → respuesta con cita de fuente/página.
+- **`docs/project-showcase.html`** — página de showcase autocontenida (dark-mode,
+  responsive, sin dependencias externas) con pipeline visual, arquitectura de capas,
+  métricas reales, stack, OWASP y roadmap.
+- **README**: badge de cobertura 97.96% → 98.20%, tests 276 → 297, Fase 4
+  completada, ADR-007 en la tabla de decisiones, tests unit actualizados a ~238.
+- **test(settings)**: aislamiento correcto del YAML real vía `_DEFAULT_YAML_PATH`
+  (`monkeypatch.chdir` no aislaba; corregido con `monkeypatch.setattr`).
 
 ### Investigado y descartado
 
