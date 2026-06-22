@@ -1,7 +1,7 @@
 # Contexto del proyecto — Mexico Immigration RAG Assistant (Asesor Migratorio RAG)
 
 > Este documento sintetiza todo lo decidido y construido hasta el cierre de la
-> **Fase 4 (v0.4.0)**, para que cualquier sesión nueva de Claude (Code o chat)
+> **Fase 4 (v0.4.1)**, para que cualquier sesión nueva de Claude (Code o chat)
 > recupere el contexto completo sin tener que re-derivarlo.
 > Está pensado para pegarse como mensaje inicial o guardarse como `CONTEXT.md`
 > en la raíz del repo y referenciarse al abrir una sesión nueva.
@@ -131,7 +131,7 @@ El MVP RAG local está 100% implementado y mergeado a `main`.
 | `IngestionPipeline` | `src/genai_toolkit/pipeline/ingest.py` | ~10 tests |
 | `scripts/ingest.py` | CLI de ingesta end-to-end | tests de integración |
 
-**Total al cierre de Fase 4**: 276 tests (unit + security); **97.96% de cobertura**; `fail_under = 70` (ADR-004).
+**Total al cierre de Fase 4 (v0.4.1)**: 297 tests (unit + security); **98.20% de cobertura**; `fail_under = 70` (ADR-004).
 Los 20 tests de integración (`@pytest.mark.integration`) se excluyen del CI rápido — requieren el modelo real de 117 MB.
 
 ### Componentes añadidos en Fase 2
@@ -195,7 +195,7 @@ desde PowerShell usar `-F archivo` (no heredoc `@'...'@` — falla con git en PS
 | 8 | API FastAPI | Pendiente |
 | 9 | Prep cloud | Pendiente |
 
-## 7. ✅ Fase 4 cerrada — MVP Vitrina + Evaluación RAG (v0.4.0, 2026-06-21)
+## 7. ✅ Fase 4 cerrada — MVP Vitrina + Evaluación RAG (v0.4.1, 2026-06-22)
 
 ### Lo que se implementó (6 PRs, #21–#26)
 
@@ -255,6 +255,19 @@ sistema RAG — la `answer_relevancy=0.901` confirma la pertinencia de las respu
 - **Streamlit + `st.session_state`**: los botones de sugerencias usan `on_click`
   con `_set_question(text)` para comunicarse con el `text_area(key="question")`.
 
+### v0.4.1 — mantenimiento post-vitrina (2026-06-22, PRs #28–#30)
+
+1. **Fix bug latente**: `OllamaProvider` ignoraba `Settings.llm_temperature` — ahora
+   honra temperatura y `seed` desde `Settings`.
+2. **Soporte de `seed`** (`llm_seed` en `Settings`, parámetro en `LLMProvider`
+   Protocol y `OllamaProvider`).
+3. **`RecursiveTextChunker`** como implementación alternativa del Protocol
+   `TextChunker` (16 tests). No es el default — ver ADR-007.
+4. **`processing/_sanitize.py`**: sanitización centralizada, compartida por ambos
+   chunkers.
+5. **Fix UX**: banner neutro cuando el LLM rechaza pese a tener contexto.
+6. **GIF de demo** en README + **`docs/project-showcase.html`** — showcase visual.
+
 ### Siguiente: Fase 5 — Seguridad avanzada
 
 Temas pendientes: red teaming con preguntas adversariales sintéticas, evaluación
@@ -280,9 +293,7 @@ de robustez ante prompt injection real, análisis de falsos negativos del retrie
 
 4. **`fail_under` = 70%** — meta de ADR-004 alcanzada; ADR-004 actualizado con historial.
 
-### Siguiente: Fase 4 — Evaluación RAG (RAGAS)
-
-Rama sugerida: `feature/ragas-evaluation`
+### ✅ Fase 4 completada — ver sección 7.
 
 
 ## 8. Cómo seguir trabajando (instrucciones de proceso)
