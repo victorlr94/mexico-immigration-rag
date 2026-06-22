@@ -97,6 +97,18 @@ Todos en `docs/architecture/adr/`. **Leer antes de tocar código relacionado:**
   ingesta. El loader produce `LoadedDocument`; el chunker lo convierte en
   `list[Chunk]`. `chunk_index`, `section` e `id` solo existen después del
   chunking.
+- **ADR-006** — Evaluación RAG en dos capas: evaluadores propios deterministas
+  (`refusal_quality`, `citation_accuracy`, `hallucination_rate`) siempre + RAGAS
+  best-effort con juez Ollama local (se degrada con aviso si no está disponible).
+- **ADR-007** — Chunking recursivo **evaluado y descartado** por falta de
+  evidencia. El hallazgo real: la **eval basada en LLM no es reproducible** en
+  este backend (Ollama/`llama.cpp` no es bit-reproducible ni a `temperature=0`
+  con `seed` fijo). La misma config da `refusal_quality` 0.769–0.923 entre
+  corridas; `citation_accuracy` se mantiene 1.000 (el retrieval es estable). Se
+  mantiene `SlidingWindowChunker`. **Se corrigió un bug latente**: `RAGService`
+  ignoraba `Settings.llm_temperature`; ahora el `OllamaProvider` honra
+  temperatura y `seed` desde `Settings`. Trabajo futuro: eval de retrieval
+  determinista (página dorada en top-k) y/o promediar N corridas.
 
 ## 5. Estado técnico al cierre de Fase 1 (v0.1.0 — 2026-06-20)
 
@@ -221,6 +233,14 @@ desde PowerShell usar `-F archivo` (no heredoc `@'...'@` — falla con git en PS
 Los timeouts de RAGAS (`faithfulness`, `context_precision`) son una limitación del
 juez local (`llama3.1:8b` en CPU, ~57 s/eval, RAGAS paralelo). No son un bug del
 sistema RAG — la `answer_relevancy=0.901` confirma la pertinencia de las respuestas.
+
+> ⚠️ **`refusal_quality` no es reproducible (ADR-007).** La misma configuración
+> da entre 0.769 y 0.923 entre corridas, incluso a `temperature=0` con `seed`
+> fijo: Ollama/`llama.cpp` no es bit-reproducible en greedy. El `0.923` de la
+> baseline es **una** corrida, no un valor estable. `citation_accuracy=1.000`
+> sí es estable (retrieval determinista). Para comparar configuraciones de forma
+> fiable hace falta una eval de retrieval determinista (página dorada en top-k)
+> y/o promediar N corridas — pendiente para Fase 4/5.
 
 ### Detalles de implementación que importan en Fase 5+
 

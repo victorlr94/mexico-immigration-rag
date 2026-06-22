@@ -25,8 +25,9 @@ class LLMProvider(Protocol):
         self,
         prompt: str,
         *,
-        temperature: float = 0.1,
+        temperature: float | None = None,
         max_tokens: int | None = None,
+        seed: int | None = None,
     ) -> str:
         """Genera una respuesta de texto a partir de un prompt completo.
 
@@ -34,12 +35,15 @@ class LLMProvider(Protocol):
             prompt: Prompt ya ensamblado por el PromptManager (incluye
                 system instructions, contexto delimitado y la pregunta).
                 Este método no construye prompts, solo los ejecuta.
-            temperature: Aleatoriedad de la generación. Por defecto baja
-                (0.1) porque en un RAG sobre dominio regulado se prioriza
-                fidelidad al contexto sobre creatividad — ver Security
-                Skill, sección de alucinaciones.
+            temperature: Aleatoriedad de la generación. None deja que la
+                implementación use su valor configurado (en el proyecto,
+                0.1 desde Settings — baja porque en un RAG sobre dominio
+                regulado se prioriza fidelidad sobre creatividad).
             max_tokens: Límite de tokens de salida. None delega el límite
                 por defecto al backend subyacente.
+            seed: Semilla de muestreo para reproducibilidad. None deja que
+                la implementación use su valor configurado (None = no
+                determinista). Útil para evaluación comparable.
 
         Returns:
             El texto generado, sin procesar (el OutputGuard se encarga de

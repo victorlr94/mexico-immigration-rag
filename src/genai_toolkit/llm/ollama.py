@@ -39,28 +39,38 @@ class OllamaProvider:
     ) -> None:
         _s = settings or Settings()
         self._model: str = _s.llm_model
+        self._temperature: float = _s.llm_temperature
+        self._seed: int | None = _s.llm_seed
         self._client: Client = Client(host=_s.ollama_base_url, timeout=timeout)
         logger.info(
-            "OllamaProvider listo: model=%r, base_url=%r",
+            "OllamaProvider listo: model=%r, base_url=%r, temperature=%.2f, seed=%r",
             self._model,
             _s.ollama_base_url,
+            self._temperature,
+            self._seed,
         )
 
     def generate(
         self,
         prompt: str,
         *,
-        temperature: float = 0.1,
+        temperature: float | None = None,
         max_tokens: int | None = None,
+        seed: int | None = None,
     ) -> str:
         """Genera texto a partir de un prompt ensamblado por el PromptManager.
 
         Args:
             prompt: Prompt completo (system + contexto + query).
-            temperature: Aleatoriedad (0.0 = determinista). Default bajo
-                porque en RAG sobre dominio regulado se prioriza fidelidad.
+            temperature: Aleatoriedad (0.0 = determinista). None usa la
+                temperatura configurada en Settings (default del proyecto:
+                0.1, baja porque en RAG sobre dominio regulado se prioriza
+                fidelidad).
             max_tokens: Límite de tokens de salida. None deja el default
                 de Ollama (depende del modelo).
+            seed: Semilla de muestreo. None usa la configurada en Settings
+                (None por defecto = no determinista). Fijarla hace
+                reproducible la generación con la misma temperatura/modelo.
 
         Returns:
             Texto generado, sin espacios de cabeza/cola.
@@ -69,7 +79,13 @@ class OllamaProvider:
             LLMGenerationError: Si Ollama no responde, falla la conexión,
                 o devuelve una respuesta vacía.
         """
-        options: dict[str, object] = {"temperature": temperature}
+        effective_temperature = (
+            temperature if temperature is not None else self._temperature
+        )
+        effective_seed = seed if seed is not None else self._seed
+        options: dict[str, object] = {"temperature": effective_temperature}
+        if effective_seed is not None:
+            options["seed"] = effective_seed
         if max_tokens is not None:
             options["num_predict"] = max_tokens
 

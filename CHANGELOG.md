@@ -8,6 +8,65 @@ proyecto se adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [0.4.1] - 2026-06-22
+
+Release de mantenimiento: corrección de bugs, mejoras de reproducibilidad de la
+evaluación, implementación alternativa de chunking y vitrina visual del proyecto.
+
+### Fixed
+
+- **Bug latente: la temperatura configurada no llegaba al LLM.** `RAGService`
+  llamaba a `OllamaProvider.generate(prompt)` sin pasar temperatura, usando un
+  default hardcodeado de 0.1 e ignorando `Settings.llm_temperature`. Ahora el
+  `OllamaProvider` toma `temperature` (y `seed`) de `Settings` en el constructor
+  y los usa como default efectivo.
+
+### Added
+
+- **Soporte de `seed` para reproducibilidad de la generación.** Nuevo campo
+  `llm_seed` en `Settings` (mapeo YAML `llm.seed`), parámetro `seed` en el
+  Protocol `LLMProvider` y en `OllamaProvider`. Permite fijar la semilla de
+  muestreo (útil en evaluación). 5 tests nuevos en `test_ollama_provider.py`.
+- **`RecursiveTextChunker`** (`src/genai_toolkit/processing/`): implementación
+  alternativa del Protocol `TextChunker` basada en `RecursiveCharacterTextSplitter`
+  (sin dependencia nueva), con 16 tests. **No es el chunker por defecto** — ver
+  ADR-007. Refactor de sanitización de control chars a `processing/_sanitize.py`,
+  compartido por ambos chunkers.
+
+### Changed
+
+- **UX (`app/streamlit_app.py`)**: el banner deja de mostrar "Alta confianza"
+  cuando el LLM emite un rechazo pese a haber contexto; detecta el texto de
+  rechazo y muestra un aviso neutro.
+
+### Docs
+
+- **GIF de demostración** (`docs/assets/demo.gif`) embebido en el README — muestra
+  el flujo real de pregunta → respuesta con cita de fuente/página.
+- **`docs/project-showcase.html`** — página de showcase autocontenida (dark-mode,
+  responsive, sin dependencias externas) con pipeline visual, arquitectura de capas,
+  métricas reales, stack, OWASP y roadmap.
+- **README**: badge de cobertura 97.96% → 98.20%, tests 276 → 297, Fase 4
+  completada, ADR-007 en la tabla de decisiones, tests unit actualizados a ~238.
+- **test(settings)**: aislamiento correcto del YAML real vía `_DEFAULT_YAML_PATH`
+  (`monkeypatch.chdir` no aislaba; corregido con `monkeypatch.setattr`).
+
+### Investigado y descartado
+
+- **Chunking recursivo (ADR-007): no concluyente, se mantiene sliding-window.**
+  Se evaluó reemplazar el chunker por uno recursivo para arreglar los rechazos en
+  preguntas libres. La medición **descubrió que la evaluación basada en LLM no es
+  reproducible en este backend**: la misma configuración da `refusal_quality`
+  entre 0.769 y 0.923 entre corridas, incluso a `temperature=0` con `seed` fijo
+  (`llama.cpp`/Ollama no es bit-reproducible en greedy por la no-asociatividad en
+  punto flotante en GPU). `citation_accuracy` se mantiene en 1.000 en todas las
+  corridas → el chunker no degrada el retrieval; el ruido vive en la decisión
+  responder/rechazar del LLM. Conclusión: sin evidencia fiable para cambiar el
+  chunker. Trabajo futuro: eval de retrieval determinista (página dorada en top-k)
+  y/o promediar N corridas. Ver ADR-007 para el detalle.
+
+---
+
 ## [0.4.0] - 2026-06-21
 
 Cuarta release de portfolio: MVP demostrable localmente — corpus oficial indexado,

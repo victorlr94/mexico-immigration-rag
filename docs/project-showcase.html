@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asesor Migratorio RAG — Showcase</title>
+  <style>
+    /* ---- Reset y variables ---- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --border:    #2a2d3a;
+      --accent:    #6c63ff;
+      --accent2:   #00d4aa;
+      --accent3:   #ff6b6b;
+      --text:      #e2e8f0;
+      --muted:     #8892a4;
+      --green:     #22c55e;
+      --yellow:    #f59e0b;
+      --blue:      #3b82f6;
+      --radius:    12px;
+      --shadow:    0 4px 24px rgba(0,0,0,.4);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ---- Hero ---- */
+    .hero {
+      background: linear-gradient(135deg, #1a1d27 0%, #0f1117 50%, #1a0a2e 100%);
+      padding: 80px 24px 60px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(108,99,255,.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero h1 {
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 30%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+    .hero .subtitle {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 620px;
+      margin: 0 auto 28px;
+    }
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 36px;
+    }
+    .badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .02em;
+    }
+    .badge-green  { background: rgba(34,197,94,.15);  color: #4ade80; border: 1px solid rgba(34,197,94,.3);  }
+    .badge-blue   { background: rgba(59,130,246,.15); color: #60a5fa; border: 1px solid rgba(59,130,246,.3); }
+    .badge-purple { background: rgba(108,99,255,.15); color: #a78bfa; border: 1px solid rgba(108,99,255,.3); }
+    .badge-yellow { background: rgba(245,158,11,.15); color: #fcd34d; border: 1px solid rgba(245,158,11,.3); }
+
+    /* ---- Layout ---- */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    section {
+      padding: 60px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    section:last-child { border-bottom: none; }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    .section-lead {
+      color: var(--muted);
+      margin-bottom: 32px;
+      max-width: 640px;
+    }
+
+    /* ---- Cards ---- */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .card p { font-size: .9rem; color: var(--muted); }
+    .card .icon {
+      font-size: 1.8rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    /* ---- Pipeline flow ---- */
+    .pipeline {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0;
+      margin-top: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      overflow-x: auto;
+    }
+    .pipeline-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 14px;
+      min-width: 90px;
+    }
+    .pipeline-step .dot {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+    .pipeline-step .label {
+      font-size: .75rem;
+      color: var(--muted);
+      text-align: center;
+    }
+    .pipeline-arrow {
+      color: var(--border);
+      font-size: 1.4rem;
+      padding: 0 4px;
+      flex-shrink: 0;
+    }
+    .dot-purple { background: rgba(108,99,255,.2); color: var(--accent);  border: 2px solid var(--accent);  }
+    .dot-teal   { background: rgba(0,212,170,.2);  color: var(--accent2); border: 2px solid var(--accent2); }
+    .dot-blue   { background: rgba(59,130,246,.2); color: var(--blue);    border: 2px solid var(--blue);    }
+    .dot-green  { background: rgba(34,197,94,.2);  color: var(--green);   border: 2px solid var(--green);   }
+    .dot-red    { background: rgba(255,107,107,.2);color: var(--accent3); border: 2px solid var(--accent3); }
+
+    /* ---- Architecture layers ---- */
+    .arch-layers {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .layer {
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .layer-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      font-size: .85rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .layer-header .tag {
+      font-size: .7rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 500;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .layer-body {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 12px 20px 16px;
+      background: rgba(0,0,0,.2);
+    }
+    .module {
+      font-size: .8rem;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .module code {
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: .78rem;
+    }
+
+    .layer-presentation .layer-header { background: rgba(108,99,255,.15); color: #a78bfa; }
+    .layer-app        .layer-header { background: rgba(59,130,246,.15);  color: #60a5fa; }
+    .layer-toolkit    .layer-header { background: rgba(0,212,170,.15);   color: var(--accent2); }
+    .layer-domain     .layer-header { background: rgba(245,158,11,.15);  color: #fcd34d; }
+
+    /* ---- Metrics ---- */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .metric-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+    }
+    .metric-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .metric-card .name {
+      font-size: .8rem;
+      color: var(--muted);
+      font-family: 'Cascadia Code', monospace;
+    }
+    .metric-card .layer-tag {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: .7rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+    .m-pass  { color: var(--green);   }
+    .m-info  { color: var(--accent);  }
+    .m-warn  { color: var(--yellow);  }
+    .tag-det { background: rgba(34,197,94,.12); color: #4ade80; }
+    .tag-rag { background: rgba(108,99,255,.12); color: #a78bfa; }
+
+    /* ---- Tech stack ---- */
+    .stack-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .9rem;
+      margin-top: 24px;
+    }
+    .stack-table th {
+      text-align: left;
+      padding: 10px 16px;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      border-bottom: 1px solid var(--border);
+    }
+    .stack-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(42,45,58,.6);
+      vertical-align: top;
+    }
+    .stack-table tr:last-child td { border-bottom: none; }
+    .stack-table tr:hover td { background: rgba(255,255,255,.02); }
+    .stack-table td:first-child { color: var(--muted); font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    .stack-table td:nth-child(2) { font-weight: 500; }
+    .stack-table td:nth-child(3) { color: var(--muted); font-size: .85rem; }
+    .stack-table code { font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: .85em; background: rgba(108,99,255,.1); padding: 1px 5px; border-radius: 4px; }
+
+    /* ---- Security ---- */
+    .owasp-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .owasp-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .owasp-card .risk-id {
+      font-size: .72rem;
+      font-weight: 700;
+      color: var(--accent3);
+      font-family: monospace;
+      letter-spacing: .06em;
+      margin-bottom: 6px;
+    }
+    .owasp-card h4 { font-size: .95rem; margin-bottom: 8px; }
+    .owasp-card p  { font-size: .85rem; color: var(--muted); }
+
+    /* ---- Roadmap ---- */
+    .roadmap {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-top: 24px;
+    }
+    .roadmap-item {
+      display: flex;
+      gap: 20px;
+      padding: 16px 0;
+      border-bottom: 1px solid rgba(42,45,58,.4);
+      align-items: flex-start;
+    }
+    .roadmap-item:last-child { border-bottom: none; }
+    .phase-dot {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .phase-done    { background: rgba(34,197,94,.2);  color: #4ade80; border: 2px solid rgba(34,197,94,.4); }
+    .phase-current { background: rgba(108,99,255,.2); color: #a78bfa; border: 2px solid rgba(108,99,255,.4); }
+    .phase-pending { background: rgba(42,45,58,.5);   color: var(--muted); border: 2px solid var(--border); }
+    .roadmap-text h4 { font-size: .95rem; margin-bottom: 4px; }
+    .roadmap-text p  { font-size: .85rem; color: var(--muted); }
+    .roadmap-text .tag-version { font-size: .72rem; color: var(--green); font-weight: 600; }
+    .roadmap-text .tag-pending { font-size: .72rem; color: var(--muted); }
+
+    /* ---- Quickstart code block ---- */
+    .code-block {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      font-size: .85rem;
+      overflow-x: auto;
+      margin-top: 24px;
+      line-height: 1.8;
+    }
+    .code-block .comment { color: #6e7681; }
+    .code-block .cmd     { color: #79c0ff; }
+    .code-block .arg     { color: #a5d6ff; }
+    .code-block .str     { color: #a8ff78; }
+
+    /* ---- Footer ---- */
+    footer {
+      text-align: center;
+      padding: 40px 24px;
+      color: var(--muted);
+      font-size: .85rem;
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--muted); }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 600px) {
+      .pipeline { flex-direction: column; align-items: flex-start; }
+      .pipeline-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+  <h1>Asesor Migratorio RAG</h1>
+  <p class="subtitle">
+    Asistente de consulta sobre documentación migratoria oficial de México.
+    Respuestas fundamentadas en fuentes, con cita de página y disclaimer legal.
+    100% open source, modelos locales, sin APIs de pago.
+  </p>
+  <div class="badges">
+    <span class="badge badge-green">297 tests · 98.20% cobertura</span>
+    <span class="badge badge-blue">Python 3.11</span>
+    <span class="badge badge-purple">LangChain · ChromaDB · Ollama</span>
+    <span class="badge badge-yellow">OWASP LLM Top 10</span>
+    <span class="badge badge-green">MIT License</span>
+  </div>
+</div>
+
+<!-- ===== PIPELINE ===== -->
+<section>
+  <div class="container">
+    <h2>Cómo funciona</h2>
+    <p class="section-lead">
+      El sistema separa dos flujos: la <strong>ingesta</strong> procesa los PDFs oficiales
+      una sola vez; la <strong>consulta</strong> ocurre en tiempo real para cada pregunta.
+    </p>
+
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">
+      Flujo de ingesta (una vez)
+    </p>
+    <div class="pipeline">
+      <div class="pipeline-step">
+        <div class="dot dot-purple">📄</div>
+        <span class="label">PDFs<br>oficiales</span>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="dot dot-red">🛡️</div>
+        <span class="label">Validación<br>seguridad</span>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="dot dot-teal">✂️</div>
+        <span class="label">Chunking<br>500 chars</span>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="dot dot-blue">🔢</div>
+        <span class="label">Embeddings<br>e5-small</span>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="dot dot-green">💾</div>
+        <span class="label">ChromaDB<br>local</span>
+      </div>
+    </div>
+
+    <p style="font-size:.85rem;color:var(--muted);margin:24px 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">
+      Flujo de consulta (tiempo real)
+    </p>
+    <div class="pipeline">
+      <div class="pipeline-step">
+        <div class="dot dot-purple">💬</div>
+        <span class="label">Pregunta<br>usuario</span>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="dot dot-red">🛡️</div>
+        <span class="label">Validación<br>longitud</span>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="dot dot-blue">🔍</div>
+        <span class="label">Retrieval<br>top-6</span>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="dot dot-teal">🤖</div>
+        <span class="label">Generación<br>Ollama</span>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="dot dot-green">📋</div>
+        <span class="label">Respuesta<br>+ fuente</span>
+      </div>
+    </div>
+
+    <p style="margin-top:16px;font-size:.85rem;color:var(--muted);">
+      Si el retriever no encuentra contexto con puntuación ≥ 0.70, el sistema emite un
+      <strong>rechazo controlado</strong> en lugar de inventar información.
+    </p>
+  </div>
+</section>
+
+<!-- ===== ARQUITECTURA ===== -->
+<section>
+  <div class="container">
+    <h2>Arquitectura de capas</h2>
+    <p class="section-lead">
+      El núcleo <code>genai_toolkit/</code> es agnóstico de dominio (ADR-001):
+      cambiar de migración a banca, telco o legal solo requiere reemplazar la capa de dominio.
+    </p>
+    <div class="arch-layers">
+
+      <div class="layer layer-presentation">
+        <div class="layer-header">
+          Presentación
+          <span class="tag" style="background:rgba(108,99,255,.15);color:#a78bfa;">app/</span>
+        </div>
+        <div class="layer-body">
+          <span class="module"><code>streamlit_app.py</code> — UI interactiva</span>
+        </div>
+      </div>
+
+      <div class="layer layer-app">
+        <div class="layer-header">
+          Aplicación
+          <span class="tag" style="background:rgba(59,130,246,.15);color:#60a5fa;">src/application/</span>
+        </div>
+        <div class="layer-body">
+          <span class="module"><code>RAGService</code> — orquestación completa</span>
+          <span class="module"><code>RAGResponse</code> + <code>SourceCitation</code></span>
+        </div>
+      </div>
+
+      <div class="layer layer-toolkit">
+        <div class="layer-header">
+          genai_toolkit — núcleo reutilizable
+          <span class="tag" style="background:rgba(0,212,170,.15);color:#2dd4bf;">src/genai_toolkit/</span>
+        </div>
+        <div class="layer-body">
+          <span class="module"><code>OllamaProvider</code></span>
+          <span class="module"><code>SentenceTransformerProvider</code></span>
+          <span class="module"><code>ChromaVectorStore</code></span>
+          <span class="module"><code>SimpleRetriever</code></span>
+          <span class="module"><code>RagPromptManager</code></span>
+          <span class="module"><code>IngestionPipeline</code></span>
+          <span class="module"><code>SlidingWindowChunker</code></span>
+          <span class="module"><code>PdfLoader</code></span>
+          <span class="module"><code>SecurityGuards</code></span>
+          <span class="module"><code>RAGInteractionLogger</code></span>
+          <span class="module"><code>Evaluadores deterministas</code></span>
+          <span class="module"><code>Settings (Pydantic)</code></span>
+        </div>
+      </div>
+
+      <div class="layer layer-domain">
+        <div class="layer-header">
+          Dominio — migración México
+          <span class="tag" style="background:rgba(245,158,11,.15);color:#fcd34d;">src/domain/</span>
+        </div>
+        <div class="layer-body">
+          <span class="module"><code>RAG_GROUNDING_V1</code> — prompt template</span>
+          <span class="module"><code>DISCLAIMER_ES</code> — aviso legal</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===== MÉTRICAS ===== -->
+<section>
+  <div class="container">
+    <h2>Evaluación RAG</h2>
+    <p class="section-lead">
+      Dos capas: evaluadores propios deterministas (siempre activos, sin LLM) +
+      RAGAS con juez Ollama local (best-effort). Resultados sobre 13 preguntas,
+      corpus de 1 704 chunks.
+    </p>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="value m-pass">0.923</div>
+        <div class="name">refusal_quality</div>
+        <span class="layer-tag tag-det">Determinista ✓</span>
+      </div>
+      <div class="metric-card">
+        <div class="value m-pass">0.000</div>
+        <div class="name">hallucination_rate</div>
+        <span class="layer-tag tag-det">Determinista ✓</span>
+      </div>
+      <div class="metric-card">
+        <div class="value m-pass">1.000</div>
+        <div class="name">citation_accuracy</div>
+        <span class="layer-tag tag-det">Determinista</span>
+      </div>
+      <div class="metric-card">
+        <div class="value m-info">0.901</div>
+        <div class="name">answer_relevancy</div>
+        <span class="layer-tag tag-rag">RAGAS ✓</span>
+      </div>
+      <div class="metric-card">
+        <div class="value m-warn">98.2%</div>
+        <div class="name">cobertura de tests</div>
+        <span class="layer-tag tag-det">297 tests</span>
+      </div>
+    </div>
+    <p style="margin-top:16px;font-size:.82rem;color:var(--muted);">
+      <strong style="color:var(--text)">Nota metodológica (ADR-007):</strong>
+      la eval basada en LLM no es bit-reproducible en Ollama/llama.cpp
+      (<code>refusal_quality</code> varía entre corridas incluso a temperatura 0).
+      <code>citation_accuracy = 1.000</code> es estable — el retrieval a nivel documento es determinista.
+    </p>
+  </div>
+</section>
+
+<!-- ===== STACK ===== -->
+<section>
+  <div class="container">
+    <h2>Stack tecnológico</h2>
+    <p class="section-lead">100% open source. Sin APIs de pago. Corre completamente en local.</p>
+    <table class="stack-table">
+      <thead>
+        <tr>
+          <th>Capa</th>
+          <th>Herramienta</th>
+          <th>Por qué</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Lenguaje</td>
+          <td>Python 3.11</td>
+          <td>Tipado estricto, ecosystem AI maduro</td>
+        </tr>
+        <tr>
+          <td>RAG</td>
+          <td>LangChain + LangChain Text Splitters</td>
+          <td>Abstracción de LLM, integración RAGAS, splitters listos</td>
+        </tr>
+        <tr>
+          <td>Vector DB</td>
+          <td>ChromaDB</td>
+          <td>Sin servidor, persistente en disco, API limpia</td>
+        </tr>
+        <tr>
+          <td>Embeddings</td>
+          <td><code>intfloat/multilingual-e5-small</code></td>
+          <td>Multilingüe ES/EN, ~117 MB, corre en CPU sin GPU</td>
+        </tr>
+        <tr>
+          <td>LLM</td>
+          <td>Ollama · <code>llama3.1:8b</code></td>
+          <td>Local, sin latencia de red, sin costo por token</td>
+        </tr>
+        <tr>
+          <td>PDF</td>
+          <td><code>pypdf ~=6.0</code></td>
+          <td>ADR-002: resuelve CVEs de PyMuPDF (path traversal + AGPL)</td>
+        </tr>
+        <tr>
+          <td>Interfaz</td>
+          <td>Streamlit</td>
+          <td>Prototipado rápido, fácil de extender a React/FastAPI</td>
+        </tr>
+        <tr>
+          <td>Evaluación</td>
+          <td>RAGAS + evaluadores propios</td>
+          <td>Métricas estándar + deterministas sin LLM externo</td>
+        </tr>
+        <tr>
+          <td>Calidad</td>
+          <td>Black · Ruff · mypy strict</td>
+          <td>Formato consistente, tipos seguros en todo el toolkit</td>
+        </tr>
+        <tr>
+          <td>CI/CD</td>
+          <td>GitHub Actions</td>
+          <td>Lint + type + tests + <code>pip-audit</code> bloqueante</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===== SEGURIDAD ===== -->
+<section>
+  <div class="container">
+    <h2>Seguridad — OWASP LLM Top 10</h2>
+    <p class="section-lead">
+      Mitigaciones implementadas y testeadas (39 tests de seguridad corren en CI).
+      <code>pip-audit</code> como gate bloqueante en cada push.
+    </p>
+    <div class="owasp-grid">
+      <div class="owasp-card">
+        <div class="risk-id">LLM01 — Prompt Injection</div>
+        <h4>Delimitadores de contexto</h4>
+        <p>Template con etiquetas <code>&lt;context&gt;…&lt;/context&gt;</code> que señalan al modelo que ese contenido es dato, no instrucción.</p>
+      </div>
+      <div class="owasp-card">
+        <div class="risk-id">LLM04 — Model DoS</div>
+        <h4>Límites explícitos de ingesta</h4>
+        <p>Validación antes de indexar: máx. 2 000 chars por query, 25 MB / 300 páginas por PDF. Magic bytes verificados.</p>
+      </div>
+      <div class="owasp-card">
+        <div class="risk-id">LLM06 — Data Disclosure</div>
+        <h4>PII redactado en logs</h4>
+        <p><code>redact_pii=true</code> en la capa de observabilidad. Hashing de queries; ningún dato personal se almacena en claro.</p>
+      </div>
+      <div class="owasp-card">
+        <div class="risk-id">Corpus Poisoning</div>
+        <h4>Sanitización antes de indexar</h4>
+        <p>Caracteres de control eliminados antes del chunking para mitigar secuencias maliciosas embebidas en PDFs.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== QUICKSTART ===== -->
+<section>
+  <div class="container">
+    <h2>Quickstart</h2>
+    <p class="section-lead">Prerequisitos: Python 3.11 y <a href="https://ollama.com" target="_blank">Ollama</a> instalado.</p>
+    <div class="code-block">
+      <span class="comment"># 1. Clonar e instalar dependencias</span><br>
+      <span class="cmd">git clone</span> <span class="str">https://github.com/victorlr94/mexico-immigration-rag.git</span><br>
+      <span class="cmd">cd</span> <span class="arg">mexico-immigration-rag</span><br>
+      <span class="cmd">python -m venv</span> <span class="arg">.venv</span> <span class="cmd">&amp;&amp; .venv\Scripts\Activate.ps1</span><br>
+      <span class="cmd">pip install -e</span> <span class="str">".[dev]"</span><br>
+      <br>
+      <span class="comment"># 2. Descargar el modelo LLM (~4.9 GB, solo la primera vez)</span><br>
+      <span class="cmd">ollama pull</span> <span class="arg">llama3.1:8b</span><br>
+      <br>
+      <span class="comment"># 3. Indexar el corpus de muestra (4 PDFs oficiales)</span><br>
+      <span class="cmd">python scripts/ingest.py</span> <span class="arg">data/samples/*.pdf</span><br>
+      <br>
+      <span class="comment"># 4. Lanzar el asistente</span><br>
+      <span class="cmd">streamlit run</span> <span class="arg">app/streamlit_app.py</span><br>
+      <br>
+      <span class="comment"># O en un solo comando con el Makefile:</span><br>
+      <span class="cmd">make demo</span> <span class="comment"># instala + descarga modelo + indexa</span><br>
+      <span class="cmd">make run</span>  <span class="comment"># lanza Streamlit</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ROADMAP ===== -->
+<section>
+  <div class="container">
+    <h2>Roadmap</h2>
+    <p class="section-lead">Proyecto de portafolio en AI Engineering. Cada fase se cierra con tag SemVer y GitHub Release.</p>
+    <div class="roadmap">
+      <div class="roadmap-item">
+        <div class="phase-dot phase-done">0</div>
+        <div class="roadmap-text">
+          <h4>Setup, arquitectura, interfaces</h4>
+          <p>Scaffold, ADRs, configuración Pydantic, Protocols del toolkit.</p>
+          <span class="tag-version">✅ v0.1.0</span>
+        </div>
+      </div>
+      <div class="roadmap-item">
+        <div class="phase-dot phase-done">1-2</div>
+        <div class="roadmap-text">
+          <h4>MVP RAG + UI Streamlit + Observabilidad</h4>
+          <p>Ingesta, chunking, embeddings, ChromaDB, Ollama, prompts, Streamlit, logs JSONL.</p>
+          <span class="tag-version">✅ v0.2.0</span>
+        </div>
+      </div>
+      <div class="roadmap-item">
+        <div class="phase-dot phase-done">3</div>
+        <div class="roadmap-text">
+          <h4>Testing y calidad</h4>
+          <p>297 tests, 98.20% cobertura, mypy strict, suite de seguridad adversarial.</p>
+          <span class="tag-version">✅ v0.3.0</span>
+        </div>
+      </div>
+      <div class="roadmap-item">
+        <div class="phase-dot phase-done">4</div>
+        <div class="roadmap-text">
+          <h4>Evaluación RAG + vitrina MVP</h4>
+          <p>RAGAS + evaluadores propios, corpus real, baseline versionada, README showcase.</p>
+          <span class="tag-version">✅ v0.4.0</span>
+        </div>
+      </div>
+      <div class="roadmap-item">
+        <div class="phase-dot phase-current">5</div>
+        <div class="roadmap-text">
+          <h4>Seguridad avanzada + red teaming</h4>
+          <p>Evaluación completa OWASP, tests adversariales ampliados, búsqueda híbrida.</p>
+          <span class="tag-pending">⚪ Siguiente</span>
+        </div>
+      </div>
+      <div class="roadmap-item">
+        <div class="phase-dot phase-pending">6-9</div>
+        <div class="roadmap-text">
+          <h4>CI/CD avanzado · Docker · FastAPI · Cloud</h4>
+          <p>Pipeline completo de producción: contenedores, API REST, despliegue en cloud.</p>
+          <span class="tag-pending">⚪ Pendiente</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+  <p>
+    <a href="https://github.com/victorlr94/mexico-immigration-rag" target="_blank">GitHub</a>
+    &nbsp;·&nbsp;
+    Licencia MIT &nbsp;·&nbsp;
+    Los documentos en <code>data/samples/</code> son de dominio público del Gobierno de México (DOF / INM)
+  </p>
+  <p style="margin-top:8px;">
+    <strong style="color:var(--text)">Aviso legal:</strong>
+    Este asistente es una herramienta informativa y no constituye asesoría legal ni migratoria oficial.
+    Verifica siempre con las fuentes del INM y consulta a un profesional acreditado para situaciones específicas.
+  </p>
+</footer>
+
+</body>
+</html>

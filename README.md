@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/victorlr94/mexico-immigration-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/victorlr94/mexico-immigration-rag/actions/workflows/ci.yml)
 [![Security](https://github.com/victorlr94/mexico-immigration-rag/actions/workflows/security.yml/badge.svg)](https://github.com/victorlr94/mexico-immigration-rag/actions/workflows/security.yml)
-[![Coverage](https://img.shields.io/badge/coverage-97.96%25-brightgreen)](https://github.com/victorlr94/mexico-immigration-rag)
+[![Coverage](https://img.shields.io/badge/coverage-98.20%25-brightgreen)](https://github.com/victorlr94/mexico-immigration-rag)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
 
@@ -31,7 +31,7 @@ la capa fina de dominio adapta el sistema a banca, telco, legal o compliance.
 > legal. Para situaciones específicas consulta a un abogado migratorio certificado
 > o al INM.*
 
-<!-- Reemplaza con captura real de la UI: docs/assets/demo_screenshot.png -->
+![Demo del Asesor Migratorio RAG](docs/assets/demo.gif)
 
 ---
 
@@ -198,12 +198,12 @@ python scripts/evaluate.py --update-baseline  # guarda como baseline.json
 ## Testing y calidad
 
 ```
-276 tests · 97.96% cobertura · mypy strict (genai_toolkit/) · Black + Ruff
+297 tests · 98.20% cobertura · mypy strict (genai_toolkit/) · Black + Ruff
 ```
 
 | Tipo | Tests | Qué cubre |
 |---|---|---|
-| Unit | ~220 | Configuración, chunking, embeddings, retrieval, evaluadores, seguridad |
+| Unit | ~238 | Configuración, chunking, embeddings, retrieval, evaluadores, seguridad |
 | Integration | 20 | ChromaDB E2E, retrieval semántico, ingesta real con PDFs |
 | Security | 39 | Adversarial (OWASP LLM01/LLM04), corpus poisoning, guards |
 
@@ -243,6 +243,7 @@ en [`security/accepted-vulnerabilities.txt`](security/accepted-vulnerabilities.t
 | [ADR-003](docs/architecture/adr/ADR-003-pip-audit-gate.md) | `pip-audit` como gate bloqueante | Lista explícita de excepciones revisadas con fecha; nuevas vulns bloquean CI |
 | [ADR-004](docs/architecture/adr/ADR-004-progressive-coverage-threshold.md) | Coverage progresivo | 30% → 50% → 70% por fase; evita falsos negativos en fases de interfaces puras |
 | [ADR-006](docs/architecture/adr/ADR-006-evaluation-local-judge-degradation.md) | Evaluación en dos capas | Deterministas siempre; RAGAS best-effort con Ollama local (sin APIs de pago) |
+| [ADR-007](docs/architecture/adr/ADR-007-recursive-chunking.md) | Chunking recursivo — evaluado y descartado | Investigación revela eval no reproducible en Ollama; se corrige bug de temperatura |
 
 ---
 
@@ -253,8 +254,8 @@ en [`security/accepted-vulnerabilities.txt`](security/accepted-vulnerabilities.t
 | 0 | Setup, arquitectura, interfaces, configuración | ✅ Completada — v0.1.0 |
 | 1 | MVP RAG: ingesta, chunking, embeddings, retrieval, LLM, prompts | ✅ Completada — v0.2.0 |
 | 2 | UI Streamlit + observabilidad | ✅ Completada — v0.2.0 |
-| 3 | Testing (276 tests, 97.96% cov), linting, type checking | ✅ Completada — v0.3.0 |
-| 4 | Evaluación RAG (RAGAS + evaluadores propios) + vitrina MVP | 🟡 En curso — v0.4.0 |
+| 3 | Testing (297 tests, 98.20% cov), linting, type checking | ✅ Completada — v0.3.0 |
+| 4 | Evaluación RAG (RAGAS + evaluadores propios) + vitrina MVP | ✅ Completada — v0.4.0 |
 | 5 | Seguridad + red teaming completo | ⚪ Pendiente |
 | 6 | CI/CD avanzado | ⚪ Pendiente (base ya existe) |
 | 7 | Dockerización | ⚪ Pendiente |
