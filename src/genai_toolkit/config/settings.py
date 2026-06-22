@@ -55,6 +55,7 @@ _DEFAULT_YAML_PATH = _PROJECT_ROOT / "configs" / "default.yaml"
 _YAML_TO_FIELD: dict[tuple[str, ...], str] = {
     ("llm", "model"): "llm_model",
     ("llm", "temperature"): "llm_temperature",
+    ("llm", "seed"): "llm_seed",
     ("llm", "base_url"): "ollama_base_url",
     ("embeddings", "model"): "embedding_model",
     ("vector_store", "persist_dir"): "chroma_persist_dir",
@@ -152,6 +153,10 @@ class Settings(BaseSettings):
     # --- LLM ---
     llm_model: str = "llama3.1:8b"
     llm_temperature: float = Field(default=0.1, ge=0.0, le=2.0)
+    # Semilla de muestreo del LLM. None = no determinista (default de Ollama).
+    # Fijarla (p. ej. en evaluación) hace reproducibles las generaciones para
+    # poder comparar configuraciones sin que el ruido del muestreo confunda.
+    llm_seed: int | None = None
     ollama_base_url: str = "http://localhost:11434"
 
     # --- Embeddings ---
