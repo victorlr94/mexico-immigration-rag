@@ -198,14 +198,14 @@ python scripts/evaluate.py --update-baseline  # guarda como baseline.json
 ## Testing y calidad
 
 ```
-297 tests · 98.20% cobertura · mypy strict (genai_toolkit/) · Black + Ruff
+309 tests · 98.20% cobertura · mypy strict (genai_toolkit/) · Black + Ruff
 ```
 
 | Tipo | Tests | Qué cubre |
 |---|---|---|
 | Unit | ~238 | Configuración, chunking, embeddings, retrieval, evaluadores, seguridad |
 | Integration | 20 | ChromaDB E2E, retrieval semántico, ingesta real con PDFs |
-| Security | 39 | Adversarial (OWASP LLM01/LLM04), corpus poisoning, guards |
+| Security | 51 | Adversarial (OWASP LLM01/LLM04), corpus poisoning, output guards, PII en logs |
 
 ```bash
 make test          # unit + security (sin integración, rápido)
@@ -223,9 +223,10 @@ Mitigaciones implementadas siguiendo OWASP Top 10 for LLM Applications:
 
 | Riesgo | Mitigación |
 |---|---|
-| LLM01 — Prompt Injection | Template con delimitadores `<context>...</context>`; contexto marcado como dato |
+| LLM01 — Prompt Injection | Template con delimitadores `<context>...</context>`; marcadores escapados en chunks (SEC-003) |
+| LLM02 — Sensitive Info Disclosure | `redact_pii=true` aplicado a pregunta **y respuesta** en logs (SEC-002) |
 | LLM04 — Model DoS | Límites: 2 000 chars por query, 25 MB / 300 páginas por PDF |
-| LLM06 — Data Disclosure | `redact_pii=true` en logs; hashing de queries en observabilidad |
+| LLM05 — Output Handling | Errores no exponen rutas/infraestructura al usuario (SEC-001) |
 | Corpus Poisoning | Validación de magic bytes, tamaño, página count antes de indexar |
 
 Dependencias auditadas con `pip-audit` como gate bloqueante en CI.
@@ -256,7 +257,7 @@ en [`security/accepted-vulnerabilities.txt`](security/accepted-vulnerabilities.t
 | 2 | UI Streamlit + observabilidad | ✅ Completada — v0.2.0 |
 | 3 | Testing (297 tests, 98.20% cov), linting, type checking | ✅ Completada — v0.3.0 |
 | 4 | Evaluación RAG (RAGAS + evaluadores propios) + vitrina MVP | ✅ Completada — v0.4.0 |
-| 5 | Seguridad + red teaming completo | ⚪ Pendiente |
+| 5 | Seguridad + red teaming completo | ✅ Completada — v0.5.0 |
 | 6 | CI/CD avanzado | ⚪ Pendiente (base ya existe) |
 | 7 | Dockerización | ⚪ Pendiente |
 | 8 | API FastAPI | ⚪ Pendiente |

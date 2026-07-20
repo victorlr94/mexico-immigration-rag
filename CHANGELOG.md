@@ -8,6 +8,51 @@ proyecto se adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [0.5.0] - 2026-06-22
+
+Quinta release de portfolio: hardening de seguridad (Fase 5) — cinco correcciones
+preventivas identificadas en la auditoría post-v0.4.1, más 12 tests de red team
+sobre los nuevos output guards.
+
+### Security
+
+- **[SEC-001]** `_render_error()` en Streamlit ya no expone mensajes de excepción
+  en bruto al usuario (rutas de archivos, nombres de BD, stack traces). La excepción
+  se registra con `logger.exception()` en el servidor; al usuario llega un mensaje
+  genérico. Mitiga fuga de información de infraestructura si la app se expone en red.
+
+- **[SEC-002]** El campo `answer` del `InteractionLog` ahora se redacta con
+  `redact_pii()` cuando `redact_pii=True` (igual que `question_text`). El LLM
+  puede echar PII de la pregunta en su respuesta (ej. RFC en "personas con RFC
+  XXXX deben…"); sin esto, ese PII quedaba sin redactar en el JSONL de logs. Fix
+  de 4 líneas en `observability/logger.py`. 6 tests nuevos.
+
+- **[SEC-003]** `_build_context_block()` en `RagPromptManager` ahora elimina
+  los marcadores `<context>` y `</context>` del texto de los chunks antes de
+  insertarlos en el prompt. Un PDF malicioso con la cadena `</context>` podría
+  cerrar prematuramente el bloque de contexto y que texto posterior fuera
+  interpretado como instrucción (LLM01 indirecto). Defense-in-depth de 2 líneas.
+  6 tests nuevos.
+
+- **[SEC-006/CI]** El workflow `security.yml` construye los flags de `pip-audit`
+  con Python en lugar de `sed`/`grep`/`tr`. Elimina el riesgo teórico de
+  inyección de comandos shell por contenido de `accepted-vulnerabilities.txt` y
+  evita problemas de word-splitting.
+
+### Changed
+
+- **[PERF-001]** `_build_service()` en `streamlit_app.py` devuelve
+  `(RAGService, ChromaVectorStore)`. `_index_count()` reutiliza la misma instancia
+  del store en lugar de abrir un segundo `PersistentClient` contra la misma BD SQLite.
+
+### Stats
+
+- **309 tests** (unit + security); **98.20% de cobertura**
+- 12 tests nuevos en `tests/security/test_output_guards.py`
+
+---
+
+
 ## [0.4.1] - 2026-06-22
 
 Release de mantenimiento: corrección de bugs, mejoras de reproducibilidad de la

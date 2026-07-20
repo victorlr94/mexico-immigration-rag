@@ -57,3 +57,26 @@ CVE-2025-69872
 #   esta dependencia transitiva probablemente pueda eliminarse del todo al
 #   revisar el árbol de dependencias de langchain-community.
 PYSEC-2026-76
+
+# langchain-core 0.3.86 — PYSEC-2026-2193 — revisar antes de: 2026-09-01
+#   Fix disponible en 1.2.22 (salto de versión mayor 0.3→1.x). Se resuelve
+#   junto con el upgrade planificado de langchain (ver GHSA-gr75-jv2w-4656).
+#   Single-user local; sin superficie de red expuesta que eleve el impacto.
+PYSEC-2026-2193
+
+# langchain-core 0.3.86 — PYSEC-2026-2562 — revisar antes de: 2026-09-01
+#   Fix disponible en 1.2.11 (salto de versión mayor 0.3→1.x). Misma entrada
+#   de upgrade que PYSEC-2026-2193 y GHSA-gr75-jv2w-4656.
+PYSEC-2026-2562
+
+# transformers 4.57.6 — PYSEC-2026-2289 — revisar antes de: 2026-09-01
+#   Fix en 5.3.0 (salto de versión mayor). sentence-transformers no soporta
+#   transformers 5.x todavía; no se adopta hasta que la cadena de dependencias
+#   complete la migración. Vigilar junto con CVE-2026-1839 (mismo paquete).
+PYSEC-2026-2289
+
+# transformers 4.57.6 — PYSEC-2026-2290 — revisar antes de: 2026-09-01
+#   Sin fix version reportada por pip-audit al momento de esta revisión.
+#   Vigilar en el ciclo de revisión de 2026-09-01 con los demás CVEs de
+#   transformers (CVE-2026-1839, PYSEC-2025-217, PYSEC-2026-2289).
+PYSEC-2026-2290
