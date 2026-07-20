@@ -46,8 +46,12 @@ SUGGESTED_QUESTIONS: list[str] = [
 
 
 @st.cache_resource(show_spinner="Cargando modelos de embeddings…")
-def _build_service() -> RAGService:
-    """Construye el RAGService una sola vez por sesión de servidor Streamlit."""
+def _build_service() -> tuple[RAGService, ChromaVectorStore]:
+    """Construye el RAGService una sola vez por sesión de servidor Streamlit.
+
+    PERF-001: retorna también el ChromaVectorStore para que _index_count() reutilice
+    la misma instancia y no abra un segundo PersistentClient contra la misma BD.
+    """
     settings = Settings()
     embedder = SentenceTransformerProvider(settings)
     store = ChromaVectorStore(settings)
@@ -55,25 +59,21 @@ def _build_service() -> RAGService:
     llm = OllamaProvider(settings)
     prompt_manager = RagPromptManager(TEMPLATES)
     interaction_logger = RAGInteractionLogger(settings)
-    return RAGService(
+    service = RAGService(
         retriever,
         llm,
         prompt_manager,
         interaction_logger=interaction_logger,
         settings=settings,
     )
-
-
-@st.cache_resource(show_spinner=False)
-def _vector_store() -> ChromaVectorStore:
-    """Store ligero (sin modelo de embeddings) para consultar el conteo del índice."""
-    return ChromaVectorStore(Settings())
+    return service, store
 
 
 def _index_count() -> int:
     """Número de chunks indexados; 0 si el store no existe o falla."""
     try:
-        return _vector_store().count()
+        _, store = _build_service()
+        return store.count()
     except Exception:  # noqa: BLE001 — la UI nunca debe romperse por el conteo
         return 0
 
@@ -184,7 +184,10 @@ def _render_error(exc: Exception) -> None:
             f"y que el modelo `{Settings().llm_model}` esté descargado."
         )
     else:
-        st.error(f"Error al procesar la consulta: {exc}")
+        # SEC-001: log the raw exception server-side; never show internal details
+        # (file paths, DB names, stack traces) to the UI — it reveals infrastructure.
+        logging.getLogger(__name__).exception("Error procesando consulta")
+        st.error("Error al procesar la consulta. Revisa los logs para más detalles.")
 
 
 def _render_empty_index_notice() -> None:
@@ -280,7 +283,7 @@ def main() -> None:
 
         with st.spinner("Buscando en la documentación…"):
             try:
-                service = _build_service()
+                service, _ = _build_service()
                 response = service.ask(question)
             except ValueError as exc:
                 st.error(f"Pregunta no válida: {exc}")
