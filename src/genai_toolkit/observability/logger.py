@@ -88,6 +88,11 @@ class RAGInteractionLogger:
         """
         question_hash = hashlib.sha256(question.encode("utf-8")).hexdigest()[:16]
         question_text = redact_pii(question) if self._settings.redact_pii else question
+        # SEC-002: redact PII from answer too — the LLM may echo PII from the question
+        # back in its answer (e.g. RFC in "personas con RFC XXXX deben…").
+        answer_text = (
+            redact_pii(answer) if (self._settings.redact_pii and answer) else answer
+        )
 
         record = InteractionLog(
             timestamp=datetime.now(UTC).isoformat(),
@@ -109,7 +114,7 @@ class RAGInteractionLogger:
             stage_latencies={
                 k: round(v, 2) for k, v in (stage_latencies or {}).items()
             },
-            answer=answer,
+            answer=answer_text,
             error=error,
             question_text=question_text,
         )
