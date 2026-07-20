@@ -1,7 +1,7 @@
 # Contexto del proyecto — Mexico Immigration RAG Assistant (Asesor Migratorio RAG)
 
 > Este documento sintetiza todo lo decidido y construido hasta el cierre de la
-> **Fase 4 (v0.4.1)**, para que cualquier sesión nueva de Claude (Code o chat)
+> **Fase 5 (v0.5.0)**, para que cualquier sesión nueva de Claude (Code o chat)
 > recupere el contexto completo sin tener que re-derivarlo.
 > Está pensado para pegarse como mensaje inicial o guardarse como `CONTEXT.md`
 > en la raíz del repo y referenciarse al abrir una sesión nueva.
@@ -131,7 +131,7 @@ El MVP RAG local está 100% implementado y mergeado a `main`.
 | `IngestionPipeline` | `src/genai_toolkit/pipeline/ingest.py` | ~10 tests |
 | `scripts/ingest.py` | CLI de ingesta end-to-end | tests de integración |
 
-**Total al cierre de Fase 4 (v0.4.1)**: 297 tests (unit + security); **98.20% de cobertura**; `fail_under = 70` (ADR-004).
+**Total al cierre de Fase 5 (v0.5.0)**: 309 tests (unit + security); **98.20% de cobertura**; `fail_under = 70` (ADR-004).
 Los 20 tests de integración (`@pytest.mark.integration`) se excluyen del CI rápido — requieren el modelo real de 117 MB.
 
 ### Componentes añadidos en Fase 2
@@ -189,7 +189,7 @@ desde PowerShell usar `-F archivo` (no heredoc `@'...'@` — falla con git en PS
 | 2 | UI Streamlit + Observability Layer (logging estructurado JSONL, redacción PII) | **Cerrada** → `v0.2.0` |
 | 3 | Suite de testing completa, pre-commit, sube `fail_under` de 50 → 70% | **Cerrada** → `v0.3.0` |
 | 4 | MVP Vitrina: corpus, UI polish, Makefile, evaluación RAG (RAGAS + propios) | **Cerrada** → `v0.4.0` |
-| 5 | Seguridad avanzada: red teaming completo, generación sintética de preguntas | Pendiente |
+| 5 | Seguridad avanzada: red teaming completo, generación sintética de preguntas | **Cerrada** → `v0.5.0` |
 | 6 | CI/CD avanzado | Pendiente |
 | 7 | Dockerización | Pendiente |
 | 8 | API FastAPI | Pendiente |
@@ -268,12 +268,60 @@ sistema RAG — la `answer_relevancy=0.901` confirma la pertinencia de las respu
 5. **Fix UX**: banner neutro cuando el LLM rechaza pese a tener contexto.
 6. **GIF de demo** en README + **`docs/project-showcase.html`** — showcase visual.
 
-### Siguiente: Fase 5 — Seguridad avanzada
+### Siguiente: Fase 6 — CI/CD avanzado
 
-Temas pendientes: red teaming con preguntas adversariales sintéticas, evaluación
-de robustez ante prompt injection real, análisis de falsos negativos del retriever.
+## 7b. ✅ Fase 5 cerrada — Hardening de seguridad (v0.5.0, 2026-06-22)
 
-## 7b. ✅ Fase 3 cerrada — Testing Suite (v0.3.0, 2026-06-20)
+### Lo que se implementó (PR #31, 1 commit de feature + 1 de CI fix)
+
+**5 correcciones de seguridad** identificadas en la auditoría post-v0.4.1
+(`docs/security/security-audit-report-2026-06-22.md`):
+
+1. **SEC-001** (`app/streamlit_app.py`) — `_render_error()` ya no expone
+   mensajes de excepción en bruto al usuario (rutas, nombres de BD, stack traces).
+   La excepción se registra en el log del servidor; el usuario recibe un mensaje
+   genérico. Mitiga fuga de infraestructura si la app se expone en red.
+
+2. **SEC-002** (`src/genai_toolkit/observability/logger.py`) — `redact_pii()`
+   ahora se aplica también al campo `answer` del `InteractionLog`, igual que ya
+   se hacía con `question_text`. El LLM puede echar PII de la pregunta en su
+   respuesta (ej. RFC en "personas con RFC XXXX deben…").
+
+3. **SEC-003** (`src/genai_toolkit/prompts/rag_prompt_manager.py`) —
+   `_build_context_block()` elimina `<context>` / `</context>` del texto de
+   los chunks antes de construirlos. Un PDF malicioso con `</context>` podría
+   cerrar el bloque y que texto posterior fuera interpretado como instrucción
+   (LLM01 indirecto).
+
+4. **PERF-001** (`app/streamlit_app.py`) — `_build_service()` devuelve
+   `(RAGService, ChromaVectorStore)`; `_index_count()` reutiliza la misma
+   instancia del store en lugar de abrir un segundo `PersistentClient` SQLite.
+
+5. **SEC-006** (`.github/workflows/security.yml`) — Flags de `pip-audit`
+   construidos con Python en lugar de `sed`/`grep`/`tr`. Elimina riesgo teórico
+   de shell injection por contenido de `accepted-vulnerabilities.txt`.
+
+**12 tests nuevos** en `tests/security/test_output_guards.py`:
+- `TestAnswerPiiRedaction` (6): SEC-002 — PII en campo `answer` del log
+- `TestContextMarkerEscaping` (6): SEC-003 — escape de marcadores en chunks
+
+**4 CVEs nuevos documentados** en `security/accepted-vulnerabilities.txt`
+(`langchain-core` × 2, `transformers` × 2 — fix requiere salto de versión
+mayor; revisión programada 2026-09-01 junto con el lote existente).
+
+### Detalles que importan en Fase 6+
+
+- **`_build_context_block`**: ahora hace `sc.chunk.text.replace("<context>",
+  "").replace("</context>", "")` antes de armar el bloque. Si se añaden otros
+  marcadores al template, actualizar este guard también.
+- **`log_interaction`**: el campo `answer_text` se calcula con `redact_pii(answer)
+  if (self._settings.redact_pii and answer) else answer` — patrón simétrico al
+  de `question_text`.
+- **Permisos de CI**: `secret-scan` job en `security.yml` ahora tiene explícito
+  `pull-requests: write` — gitleaks-action@v2 necesita este permiso para anotar
+  PRs vía GitHub API.
+
+## 7c. ✅ Fase 3 cerrada — Testing Suite (v0.3.0, 2026-06-20)
 
 ### Lo que se implementó
 
