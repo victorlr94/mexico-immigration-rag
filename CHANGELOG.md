@@ -52,6 +52,7 @@ sobre los nuevos output guards.
 
 ---
 
+
 ## [0.4.1] - 2026-06-22
 
 Release de mantenimiento: corrección de bugs, mejoras de reproducibilidad de la
