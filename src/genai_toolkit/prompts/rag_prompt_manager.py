@@ -88,6 +88,9 @@ def _build_context_block(result: RetrievalResult) -> str:
         if m.page is not None:
             label += f", Página {m.page}"
         label += "]"
-        parts.append(f"{label}\n{sc.chunk.text}")
+        # SEC-003: strip context delimiters from chunk text so a malicious PDF
+        # cannot close the <context> block and inject instructions.
+        safe_text = sc.chunk.text.replace("<context>", "").replace("</context>", "")
+        parts.append(f"{label}\n{safe_text}")
 
     return "\n\n".join(parts)
